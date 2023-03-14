@@ -182,7 +182,7 @@ def eval_points(sdf_network, map_states, sampled_xyz, sampled_idx, voxel_size):
     #                     points[i: i + chunk_size], values)
     #     for i in range(0, points.size(0), chunk_size)], 0).view(-1, res, res, res, 4)
 
-
+# rays_o rays_d 代表了在一个frame图像序列里取样的光线
 def render_rays(
         rays_o,
         rays_d,
@@ -199,7 +199,7 @@ def render_rays(
 ):
     centres = map_states["voxel_center_xyz"]
     childrens = map_states["voxel_structure"]
-
+    # hit test
     if profiler is not None:
         profiler.tick("ray_intersect")
     intersections, hits = ray_intersect(
@@ -214,16 +214,18 @@ def render_rays(
         name: outs[ray_mask].reshape(-1, outs.size(-1))
         for name, outs in intersections.items()
     }
-
+    # the ray after hit test
     rays_o = rays_o[ray_mask].reshape(-1, 3)
     rays_d = rays_d[ray_mask].reshape(-1, 3)
 
     if profiler is not None:
         profiler.tick("ray_sample")
+    # sample configure caculation
     samples = ray_sample(intersections, step_size=step_size)
+   
     if profiler is not None:
         profiler.tok("ray_sample")
-
+    # sample configure caculation 
     sampled_depth = samples['sampled_point_depth']
     sampled_idx = samples['sampled_point_voxel_idx'].long()
 
@@ -231,13 +233,15 @@ def render_rays(
     sample_mask = sampled_idx.ne(-1)
     if sample_mask.sum() == 0:  # miss everything skip
         return None, 0
-
+    
+    # sample points through the ray
     sampled_xyz = ray(rays_o.unsqueeze(
         1), rays_d.unsqueeze(1), sampled_depth.unsqueeze(2))
     sampled_dir = rays_d.unsqueeze(1).expand(
         *sampled_depth.size(), rays_d.size()[-1])
     sampled_dir = sampled_dir / \
         (torch.norm(sampled_dir, 2, -1, keepdim=True) + 1e-8)
+    # caculate the final sampled point's position and direction
     samples['sampled_point_xyz'] = sampled_xyz
     samples['sampled_point_ray_direction'] = sampled_dir
 
@@ -256,6 +260,7 @@ def render_rays(
         # get encoder features as inputs
         if profiler is not None:
             profiler.tick("get_features")
+        # caculate the embeddings, 三线性插值
         chunk_inputs = get_features(chunk_samples, map_states, voxel_size)
         if profiler is not None:
             profiler.tok("get_features")
@@ -268,7 +273,7 @@ def render_rays(
             profiler.tok("render_core")
 
         field_outputs.append(chunk_outputs)
-
+    # the sdf and rgb values from the net
     field_outputs = {name: torch.cat(
         [r[name] for r in field_outputs], dim=0) for name in field_outputs[0]}
 
@@ -371,18 +376,20 @@ def bundle_adjust_frames(
         for frame in keyframe_graph:
             pose = frame.get_pose().cuda()
             frame.sample_rays(N_rays)
-
+            # print("\033[0;33;40m",'frame',frame, "\033[0m")
             sample_mask = frame.sample_mask.cuda()
             sampled_rays_d = frame.rays_d[sample_mask].cuda()
-
+            # print("\033[0;33;40m",'sample_mask',sample_mask, "\033[0m")
+            # print("\033[0;33;40m",'sample_mask_shape',sample_mask.shape, "\033[0m")
+            
             R = pose[: 3, : 3].transpose(-1, -2)
             # 每条光线的在nerf坐标系下的方向
             sampled_rays_d = sampled_rays_d@R
-            print("\033[0;33;40m",'sampled_rays_d',sampled_rays_d, "\033[0m")
+            # print("\033[0;33;40m",'sampled_rays_d',sampled_rays_d, "\033[0m")
             # 每条光线的在nerf坐标系下的原点
             sampled_rays_o = pose[: 3, 3].reshape(
                 1, -1).expand_as(sampled_rays_d)
-            print("\033[0;33;40m",'sampled_rays_o',sampled_rays_o, "\033[0m")
+            # print("\033[0;33;40m",'sampled_rays_o',sampled_rays_o, "\033[0m")
             rays_d += [sampled_rays_d]
             rays_o += [sampled_rays_o]
             rgb_samples += [frame.rgb.cuda()[sample_mask]]
@@ -390,9 +397,10 @@ def bundle_adjust_frames(
 
         rays_d = torch.cat(rays_d, dim=0).unsqueeze(0)
         rays_o = torch.cat(rays_o, dim=0).unsqueeze(0)
+        
         rgb_samples = torch.cat(rgb_samples, dim=0).unsqueeze(0)
         depth_samples = torch.cat(depth_samples, dim=0).unsqueeze(0)
-
+        #render single view 
         final_outputs = render_rays(
             rays_o,
             rays_d,

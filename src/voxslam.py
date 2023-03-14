@@ -33,11 +33,11 @@ class VoxSLAM:
         self.share_data = manager.ShareData()
         # keyframe buffer  共享的buffer序列
         self.kf_buffer = mp.Queue(maxsize=1)
-        print("\033[0;33;40m",'buffer数',self.kf_buffer, "\033[0m")
+        # print("\033[0;33;40m",'buffer数',self.kf_buffer, "\033[0m")
         # data stream
         self.data_stream = get_dataset(args)
         # tracker 
-        print("\033[0;33;40m",'数据流',self.data_stream, "\033[0m")
+        # print("\033[0;33;40m",'数据流',self.data_stream, "\033[0m")
         # 加载参数，数据集
         self.tracker = Tracking(args, self.data_stream, self.logger, self.visualizer)
         # mapper

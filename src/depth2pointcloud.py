@@ -12,17 +12,17 @@ def depth_to_3dpoints(pose1,rgb,depth,K):
     color_3d = []
     rgb = rgbmap(rgb)
     # print('rgb',rgb.shape)
-    for m in range(depth.shape[0]):
-        for n in range(depth.shape[1]):
+    for m in range(0,depth.shape[0],3):
+        for n in range(0,depth.shape[1],3):
             d = depth[m, n] 
             key_points = [n, m]
-            if d ==0:
+            # if d < 0.01 or d>10:
+            if d < 0.01 :
                 continue
             dd = d   #深度越大移动越大
             p1 = pixel2cam(key_points, K)
             p3d= [p1[0, 0]*dd, p1[1, 0]*dd, dd]
             c3d =[rgb[m,n,2],rgb[m,n,1],rgb[m,n,0]]
-            # if scene == 'Lego':
             #     p3d= np.append(p3d,[1])
             #     a = copy.deepcopy(p3d[0]) 
             #     b = copy.deepcopy(p3d[1])

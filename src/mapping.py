@@ -11,6 +11,7 @@ from loggers import BasicLogger
 from utils.import_util import get_decoder, get_property
 from variations.render_helpers import bundle_adjust_frames
 from utils.mesh_util import MeshExtractor
+import open3d as o3d
 
 torch.classes.load_library(
     "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
@@ -73,7 +74,10 @@ class Mapping:
 
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size)
-
+        
+        
+        # self.pointcloud = []
+        # self.pointcloud = torch.Tensor(self.pointcloud)
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
@@ -81,6 +85,7 @@ class Mapping:
     def spin(self, share_data, kf_buffer):
         # print("************mapping process started!******")
         print("\033[0;33;40m",'*****mapping process started!*****', "\033[0m")
+        self.point_cloud = o3d.geometry.PointCloud()
         while True:
             # torch.cuda.empty_cache()
             if not kf_buffer.empty():
@@ -90,7 +95,8 @@ class Mapping:
                 if not self.initialized:
                     if self.mesher is not None:
                         self.mesher.rays_d = tracked_frame.get_rays()
-                    self.create_voxels(tracked_frame)
+                    self.create_voxels_pointcloud(tracked_frame)
+                    # self.create_pointcloud(tracked_frame)
                     self.insert_keyframe(tracked_frame)
                     while kf_buffer.empty():
                         self.do_mapping(share_data)
@@ -98,7 +104,8 @@ class Mapping:
                     self.initialized = True
                 else:
                     self.do_mapping(share_data, tracked_frame)
-                    self.create_voxels(tracked_frame)
+                    self.create_voxels_pointcloud(tracked_frame)
+                    # self.create_pointcloud(tracked_frame)
                     # if (tracked_frame.stamp - self.current_keyframe.stamp) > 50:
                     if (tracked_frame.stamp - self.current_keyframe.stamp) > 50:
                         self.insert_keyframe(tracked_frame)
@@ -203,30 +210,46 @@ class Mapping:
         self.keyframe_graph += [frame]
         # self.update_grid_features()
 
-    def create_voxels(self, frame):
+    def create_voxels_pointcloud(self, frame):
         points = frame.get_points().cuda()
+        colors = frame.get_color().cuda()
         pose = frame.get_pose().cuda()
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
 
         self.svo.insert(voxels.cpu().int())
-        self.update_grid_features()
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        per_point_cloud = o3d.geometry.PointCloud()
+        per_point_cloud.points = o3d.utility.Vector3dVector(points.detach().cpu().numpy().reshape(-1,3))
+        # print("\033[0;33;40m",'per_point_cloud.points',np.asarray(per_point_cloud.points).shape, "\033[0m")
+        per_point_cloud.colors = o3d.utility.Vector3dVector(colors.detach().cpu().numpy().reshape(-1,3))
+        per_point_cloud = per_point_cloud.voxel_down_sample(voxel_size=0.05)       
+        self.point_cloud += per_point_cloud
+        self.point_cloud = self.point_cloud.voxel_down_sample(voxel_size=0.05) 
+        
+        self.update_grid_pc_features()
+        # self.update_pointcloud_features()
 
     @torch.enable_grad()
-    def update_grid_features(self):
+    def update_grid_pc_features(self):
         voxels, children, features = self.svo.get_centres_and_children()
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
 
         centres = centres.cuda().float()
         children = children.cuda().int()
-
         map_states = {}
         map_states["voxel_vertex_idx"] = features.cuda()
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
+        map_states["pointcloud_xyz"] = torch.from_numpy(np.asarray(self.point_cloud.points))
+        map_states["pointcloud_rgb"] = torch.from_numpy(np.asarray(self.point_cloud.colors))
         self.map_states = map_states
+        self.map_states = map_states
+        # print("\033[0;33;40m",'self.map_states["voxel_center_xyz"]',self.map_states["voxel_center_xyz"].shape, "\033[0m")
+        # print("\033[0;33;40m",'self.map_states["pointcloud_xyz"]',self.map_states["pointcloud_xyz"].shape, "\033[0m")
+    
 
     @torch.no_grad()
     def get_updated_poses(self):

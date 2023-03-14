@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from se3pose import OptimizablePose
 from utils.sample_util import *
+import open3d as o3d
 
 rays_dir = None
 
@@ -65,6 +66,10 @@ class RGBDFrame(nn.Module):
     def get_points(self):
         vmap = self.rays_d * self.depth[..., None]
         return vmap[self.depth > 0].reshape(-1, 3)
+    
+    @torch.no_grad()
+    def get_color(self):
+        return self.rgb
 
     @torch.no_grad()
     def sample_rays(self, N_rays):
