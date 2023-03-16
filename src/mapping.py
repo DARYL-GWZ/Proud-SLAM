@@ -75,7 +75,6 @@ class Mapping:
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size)
         
-        
         # self.pointcloud = []
         # self.pointcloud = torch.Tensor(self.pointcloud)
         self.frame_poses = []
@@ -160,6 +159,7 @@ class Mapping:
         bundle_adjust_frames(
             optimize_targets,
             self.map_states,
+            self.map_pc_states,
             self.decoder,
             self.loss_criteria,
             self.voxel_size,
@@ -243,10 +243,10 @@ class Mapping:
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
-        map_states["pointcloud_xyz"] = torch.from_numpy(np.asarray(self.point_cloud.points))
-        map_states["pointcloud_rgb"] = torch.from_numpy(np.asarray(self.point_cloud.colors))
         self.map_states = map_states
-        self.map_states = map_states
+        # map_pc_states["pointcloud_xyz"] = torch.from_numpy(np.asarray(self.point_cloud.points))
+        # map_pc_states["pointcloud_rgb"] = torch.from_numpy(np.asarray(self.point_cloud.colors))
+        self.map_pc_states = self.point_cloud
         # print("\033[0;33;40m",'self.map_states["voxel_center_xyz"]',self.map_states["voxel_center_xyz"].shape, "\033[0m")
         # print("\033[0;33;40m",'self.map_states["pointcloud_xyz"]',self.map_states["pointcloud_xyz"].shape, "\033[0m")
     

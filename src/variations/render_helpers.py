@@ -1,8 +1,8 @@
 from copy import deepcopy
 import torch
 import torch.nn.functional as F
-
-from .voxel_helpers import ray_intersect, ray_sample
+import open3d as o3d
+from .voxel_helpers import ray_intersect_vox, ray_sample
 
 
 def ray(ray_start, ray_dir, depths):
@@ -182,11 +182,12 @@ def eval_points(sdf_network, map_states, sampled_xyz, sampled_idx, voxel_size):
     #                     points[i: i + chunk_size], values)
     #     for i in range(0, points.size(0), chunk_size)], 0).view(-1, res, res, res, 4)
 
-# rays_o rays_d 代表了在一个frame图像序列里取样的光线
+
 def render_rays(
         rays_o,
         rays_d,
         map_states,
+        map_pc_states,
         sdf_network,
         step_size,
         voxel_size,
@@ -197,14 +198,19 @@ def render_rays(
         profiler=None,
         return_raw=False
 ):
+    # pc_colors = map_pc_states.colors
+    # pc_points = map_pc_states.points
+    
     centres = map_states["voxel_center_xyz"]
     childrens = map_states["voxel_structure"]
-    # hit test
+    # hit test--------------------
     if profiler is not None:
         profiler.tick("ray_intersect")
-    intersections, hits = ray_intersect(
+        
+    intersections, hits = ray_intersect_vox(
         rays_o, rays_d, centres,
         childrens, voxel_size, max_voxel_hit, max_distance)
+  
     if profiler is not None:
         profiler.tok("ray_intersect")
     assert(hits.sum() > 0)
@@ -214,27 +220,29 @@ def render_rays(
         name: outs[ray_mask].reshape(-1, outs.size(-1))
         for name, outs in intersections.items()
     }
-    # the ray after hit test
+    
+    # the ray after hit test, remove the hole or too far item-------------
     rays_o = rays_o[ray_mask].reshape(-1, 3)
     rays_d = rays_d[ray_mask].reshape(-1, 3)
-
+    # print("\033[0;33;40m",'rays_o',rays_o.shape, "\033[0m")
     if profiler is not None:
         profiler.tick("ray_sample")
-    # sample configure caculation
+    # sample configure caculation------计算各个ray上采样点的深度和有效采样点
     samples = ray_sample(intersections, step_size=step_size)
    
     if profiler is not None:
         profiler.tok("ray_sample")
-    # sample configure caculation 
+    # sample configure caculation 计算光线上各个采样点的深度和有效位置
     sampled_depth = samples['sampled_point_depth']
     sampled_idx = samples['sampled_point_voxel_idx'].long()
-
-    # only compute when the ray hits
+    # only compute when the rays hits  [1017, 60]
     sample_mask = sampled_idx.ne(-1)
+
+    
     if sample_mask.sum() == 0:  # miss everything skip
         return None, 0
     
-    # sample points through the ray
+    # sample points xyz through the ray-----通过点深度和有效值算出采样点xyz和方向
     sampled_xyz = ray(rays_o.unsqueeze(
         1), rays_d.unsqueeze(1), sampled_depth.unsqueeze(2))
     sampled_dir = rays_d.unsqueeze(1).expand(
@@ -244,15 +252,20 @@ def render_rays(
     # caculate the final sampled point's position and direction
     samples['sampled_point_xyz'] = sampled_xyz
     samples['sampled_point_ray_direction'] = sampled_dir
-
     # apply mask
+    #     samples = {
+    #     "sampled_point_depth": sampled_depth,
+    #     "sampled_point_distance": sampled_dists,
+    #     "sampled_point_voxel_idx": sampled_idx,
+    # }
     samples_valid = {name: s[sample_mask] for name, s in samples.items()}
-
     num_points = samples_valid['sampled_point_depth'].shape[0]
     field_outputs = []
     if chunk_size < 0:
         chunk_size = num_points
-
+        
+    tree = o3d.geometry.KDTreeFlann(map_pc_states)
+    # [k, idx, _] = tree.search_radius_vector_3d(query_point, radius)
     for i in range(0, num_points, chunk_size):
         chunk_samples = {name: s[i:i+chunk_size]
                          for name, s in samples_valid.items()}
@@ -260,8 +273,12 @@ def render_rays(
         # get encoder features as inputs
         if profiler is not None:
             profiler.tick("get_features")
-        # caculate the embeddings, 三线性插值
+            # caculate the  embeddings, 三线性插值
+        # chunk_inputs {"dists": sampled_dis, "emb": feats}
         chunk_inputs = get_features(chunk_samples, map_states, voxel_size)
+        print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
+        print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
+        
         if profiler is not None:
             profiler.tok("get_features")
 
@@ -331,6 +348,7 @@ def render_rays(
 def bundle_adjust_frames(
     keyframe_graph,
     map_states,
+    map_pc_states,
     sdf_network,
     loss_criteria,
     voxel_size,
@@ -365,14 +383,17 @@ def bundle_adjust_frames(
     # if len(optimize_params) != 0:
     #     pose_optim = torch.optim.Adam(optimize_params)
     #     optimizers += [pose_optim]
-
+    
+    
+    # sampling number after getted the new frame
     for _ in range(num_iterations):
 
         rays_o = []
         rays_d = []
         rgb_samples = []
         depth_samples = []
-
+        
+        # random sampling in the whole keyframe_graph
         for frame in keyframe_graph:
             pose = frame.get_pose().cuda()
             frame.sample_rays(N_rays)
@@ -383,7 +404,7 @@ def bundle_adjust_frames(
             # print("\033[0;33;40m",'sample_mask_shape',sample_mask.shape, "\033[0m")
             
             R = pose[: 3, : 3].transpose(-1, -2)
-            # 每条光线的在nerf坐标系下的方向
+            # 每条光线的在nerf世界坐标系下的方向
             sampled_rays_d = sampled_rays_d@R
             # print("\033[0;33;40m",'sampled_rays_d',sampled_rays_d, "\033[0m")
             # 每条光线的在nerf坐标系下的原点
@@ -400,11 +421,12 @@ def bundle_adjust_frames(
         
         rgb_samples = torch.cat(rgb_samples, dim=0).unsqueeze(0)
         depth_samples = torch.cat(depth_samples, dim=0).unsqueeze(0)
-        #render single view 
+        # random sampling in the whole keyframe_graph
         final_outputs = render_rays(
             rays_o,
             rays_d,
             map_states,
+            map_pc_states,
             sdf_network,
             step_size,
             voxel_size,
@@ -429,6 +451,7 @@ def track_frame(
     frame_pose,
     curr_frame,
     map_states,
+    map_pc_states,
     sdf_network,
     loss_criteria,
     voxel_size,
@@ -471,6 +494,7 @@ def track_frame(
             ray_start_iter,
             ray_dirs_iter,
             map_states,
+            map_pc_states,
             sdf_network,
             step_size,
             voxel_size,

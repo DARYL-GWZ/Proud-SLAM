@@ -6,11 +6,11 @@ import torch.multiprocessing as mp
 
 from loggers import BasicLogger
 from mapping import Mapping
-from share import ShareData, ShareDataProxy
+from share import ShareData, ShareDataProxy,SharedPointCloud
 from tracking import Tracking
 from utils.import_util import get_dataset
 from visualization import Visualizer
-
+import open3d as o3d
 
 class VoxSLAM:
     def __init__(self, args):
@@ -26,11 +26,14 @@ class VoxSLAM:
         mp.set_start_method('spawn', force=True)
         # 将需要共享的类对象注册在类中
         BaseManager.register('ShareData', ShareData, ShareDataProxy)
+        BaseManager.register('SharedPointCloud', SharedPointCloud)
         # 实例化一个共享对象
         manager = BaseManager()
         # 运行这个类
         manager.start()
         self.share_data = manager.ShareData()
+        self.share_pc_data = manager.SharedPointCloud()
+        
         # keyframe buffer  共享的buffer序列
         self.kf_buffer = mp.Queue(maxsize=1)
         # print("\033[0;33;40m",'buffer数',self.kf_buffer, "\033[0m")

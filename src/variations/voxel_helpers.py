@@ -523,7 +523,7 @@ def splitting_points(point_xyz, point_feats, values, half_voxel):
 
 
 @torch.no_grad()
-def ray_intersect(ray_start, ray_dir, flatten_centers, flatten_children, voxel_size, max_hits, max_distance=10.0):
+def ray_intersect_vox(ray_start, ray_dir, flatten_centers, flatten_children, voxel_size, max_hits, max_distance=10.0):
     # ray-voxel intersection
     max_hits_temp = 50
     pts_idx, min_depth, max_depth = svo_ray_intersect(

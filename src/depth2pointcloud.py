@@ -37,3 +37,48 @@ def depth_to_3dpoints(pose1,rgb,depth,K):
     color_3d = np.array(color_3d)
     return pts_3d,color_3d
 
+
+import open3d as o3d
+import numpy as np
+
+# 生成点云数据
+points = np.random.rand(1000, 3)
+pcd = o3d.geometry.PointCloud()
+pcd.points = o3d.utility.Vector3dVector(points)
+
+# 创建 KD 树
+tree = o3d.geometry.KDTreeFlann(pcd)
+
+# 给定点和半径
+query_point = np.array([0.5, 0.5, 0.5])
+radius = 0.2
+
+# 查询 KD 树
+[k, idx, _] = tree.search_radius_vector_3d(query_point, radius)
+
+# 获取查询结果
+selected_points = np.asarray(pcd.points)[idx, :]
+
+import open3d as o3d
+import numpy as np
+
+# 创建一个空的点云对象
+pcd = o3d.geometry.PointCloud()
+
+# 生成随机点
+n_points = 100
+points = np.random.rand(n_points, 3)
+
+# 为每个点添加自定义属性info，存储随机数值
+info = np.random.rand(n_points)
+pcd.point["info"] = o3d.utility.Vector3dVector(info)
+
+# 将点设置为点云对象的坐标
+pcd.points = o3d.utility.Vector3dVector(points)
+
+# 可以将自定义属性存储为numpy数组并在之后使用
+info_retrieved = np.asarray(pcd.point["info"])
+
+# 可以使用自定义属性来进行可视化
+o3d.visualization.draw_geometries([pcd], point_show_normal=False)
+

@@ -3,9 +3,26 @@ from copy import deepcopy
 import torch.multiprocessing as mp
 from time import sleep
 import sys
+import open3d as o3d
 
 class ShareDataProxy(NamespaceProxy):
     _exposed_ = ('__getattribute__', '__setattr__')
+
+
+class SharedPointCloud:
+    def __init__(self):
+        self.lock = mp.Lock()
+        # self.pointcloud = o3d.io.read_point_cloud(filepath)
+
+    def get_pointcloud(self):
+        with self.lock:
+            return self.pointcloud
+
+    def set_pointcloud(self, pointcloud):
+        with self.lock:
+            self.pointcloud = pointcloud
+
+
 
 class ShareData:
     global lock
