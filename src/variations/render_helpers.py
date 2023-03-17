@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import open3d as o3d
 from .voxel_helpers import ray_intersect_vox, ray_sample
-
+from .point_feature import ResNetEncoder
 
 def ray(ray_start, ray_dir, depths):
     return ray_start + ray_dir * depths
@@ -264,7 +264,7 @@ def render_rays(
     if chunk_size < 0:
         chunk_size = num_points
         
-    tree = o3d.geometry.KDTreeFlann(map_pc_states)
+    # tree = o3d.geometry.KDTreeFlann(map_pc_states)
     # [k, idx, _] = tree.search_radius_vector_3d(query_point, radius)
     for i in range(0, num_points, chunk_size):
         chunk_samples = {name: s[i:i+chunk_size]
@@ -276,8 +276,8 @@ def render_rays(
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
         chunk_inputs = get_features(chunk_samples, map_states, voxel_size)
-        print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
-        print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
+        # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
+        # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
         
         if profiler is not None:
             profiler.tok("get_features")

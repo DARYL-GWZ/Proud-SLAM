@@ -12,6 +12,7 @@ from utils.import_util import get_decoder, get_property
 from variations.render_helpers import bundle_adjust_frames
 from utils.mesh_util import MeshExtractor
 import open3d as o3d
+from variations.point_feature import ResNetEncoder
 
 torch.classes.load_library(
     "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
@@ -80,8 +81,9 @@ class Mapping:
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
+        self.points_encoder = ResNetEncoder()
 
-    def spin(self, share_data, kf_buffer):
+    def spin(self, share_data,kf_buffer):
         # print("************mapping process started!******")
         print("\033[0;33;40m",'*****mapping process started!*****', "\033[0m")
         self.point_cloud = o3d.geometry.PointCloud()
@@ -218,20 +220,23 @@ class Mapping:
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
 
         self.svo.insert(voxels.cpu().int())
-        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+        per_point_feature = 
         per_point_cloud = o3d.geometry.PointCloud()
         per_point_cloud.points = o3d.utility.Vector3dVector(points.detach().cpu().numpy().reshape(-1,3))
+        per_point_cloud.point["points_feature"] = o3d.utility.Vector3dVector(points.detach().cpu().numpy().reshape(-1,3))
         # print("\033[0;33;40m",'per_point_cloud.points',np.asarray(per_point_cloud.points).shape, "\033[0m")
         per_point_cloud.colors = o3d.utility.Vector3dVector(colors.detach().cpu().numpy().reshape(-1,3))
         per_point_cloud = per_point_cloud.voxel_down_sample(voxel_size=0.05)       
         self.point_cloud += per_point_cloud
         self.point_cloud = self.point_cloud.voxel_down_sample(voxel_size=0.05) 
+        self.map_pc_states = self.point_cloud
         
-        self.update_grid_pc_features()
+        self.update_grid_features()
         # self.update_pointcloud_features()
 
     @torch.enable_grad()
-    def update_grid_pc_features(self):
+    def update_grid_features(self):
         voxels, children, features = self.svo.get_centres_and_children()
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
@@ -246,10 +251,8 @@ class Mapping:
         self.map_states = map_states
         # map_pc_states["pointcloud_xyz"] = torch.from_numpy(np.asarray(self.point_cloud.points))
         # map_pc_states["pointcloud_rgb"] = torch.from_numpy(np.asarray(self.point_cloud.colors))
-        self.map_pc_states = self.point_cloud
-        # print("\033[0;33;40m",'self.map_states["voxel_center_xyz"]',self.map_states["voxel_center_xyz"].shape, "\033[0m")
-        # print("\033[0;33;40m",'self.map_states["pointcloud_xyz"]',self.map_states["pointcloud_xyz"].shape, "\033[0m")
-    
+        # self.map_pc_states = self.point_cloud
+
 
     @torch.no_grad()
     def get_updated_poses(self):
