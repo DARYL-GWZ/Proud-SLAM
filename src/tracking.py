@@ -106,12 +106,11 @@ class Tracking:
             map_states[k] = v.cuda()
 
         self.profiler.tick("track frame")
-        map_pc_states = None
+        # map_pc_states = None
         frame_pose, optim, hit_mask = track_frame(
             self.last_frame.pose,
             current_frame,
             map_states,
-            map_pc_states,
             decoder,
             self.loss_criteria,
             self.voxel_size,

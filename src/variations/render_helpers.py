@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import open3d as o3d
 from .voxel_helpers import ray_intersect_vox, ray_sample
-from .point_feature import ResNetEncoder
+
 
 def ray(ray_start, ray_dir, depths):
     return ray_start + ray_dir * depths
@@ -187,7 +187,6 @@ def render_rays(
         rays_o,
         rays_d,
         map_states,
-        map_pc_states,
         sdf_network,
         step_size,
         voxel_size,
@@ -348,7 +347,6 @@ def render_rays(
 def bundle_adjust_frames(
     keyframe_graph,
     map_states,
-    map_pc_states,
     sdf_network,
     loss_criteria,
     voxel_size,
@@ -426,7 +424,6 @@ def bundle_adjust_frames(
             rays_o,
             rays_d,
             map_states,
-            map_pc_states,
             sdf_network,
             step_size,
             voxel_size,
@@ -451,7 +448,6 @@ def track_frame(
     frame_pose,
     curr_frame,
     map_states,
-    map_pc_states,
     sdf_network,
     loss_criteria,
     voxel_size,
@@ -494,7 +490,6 @@ def track_frame(
             ray_start_iter,
             ray_dirs_iter,
             map_states,
-            map_pc_states,
             sdf_network,
             step_size,
             voxel_size,
