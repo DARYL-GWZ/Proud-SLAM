@@ -42,8 +42,8 @@ class Tracking:
         # sanity check on the lower/upper bounds
         self.start_frame = min(self.start_frame, len(self.data_stream))
         self.end_frame = min(self.end_frame, len(self.data_stream))
-        print("\033[0;33;40m",'初始帧',self.start_frame, "\033[0m")
-        print("\033[0;33;40m",'结束帧',self.start_frame, "\033[0m")
+        # print("\033[0;33;40m",'初始帧',self.start_frame, "\033[0m")
+        # print("\033[0;33;40m",'结束帧',self.start_frame, "\033[0m")
         # profiler
         verbose = get_property(args.debug_args, "verbose", False)
         self.profiler = Profiler(verbose=verbose)
@@ -71,7 +71,8 @@ class Tracking:
                 break
             try:
                 data_in = self.data_stream[frame_id]
-    
+                # print("\033[0;33;40m",'data_in',data_in.shape, "\033[0m")
+
                 if self.show_imgs:
                     import cv2
                     img = data_in[1]
@@ -79,10 +80,11 @@ class Tracking:
                     cv2.imshow("img", img.cpu().numpy())
                     cv2.imshow("depth", depth.cpu().numpy())
                     cv2.waitKey(1)
-
+                # print("\033[0;33;40m",'xxxxxxxxxxx1', "\033[0m")
                 current_frame = RGBDFrame(*data_in)
+                # print("\033[0;33;40m",'xxxxxxxxxxx2', "\033[0m")
                 self.do_tracking(share_data, current_frame, kf_buffer)
-
+                # print("\033[0;33;40m",'xxxxxxxxxxx3', "\033[0m")
                 if self.render_freq > 0 and (frame_id + 1) % self.render_freq == 0:
                     self.render_debug_images(share_data, current_frame)
             except Exception as e:
@@ -100,8 +102,11 @@ class Tracking:
             pass
 
     def do_tracking(self, share_data, current_frame, kf_buffer):
+        print("\033[0;33;40m",'share_data',share_data, "\033[0m")
         decoder = share_data.decoder.cuda()
+        # print("\033[0;33;40m",'xxxxxxxxxxx3', "\033[0m")
         map_states = share_data.states
+        # print("\033[0;33;40m",'map_states',map_states.keys(), "\033[0m")
         for k, v in map_states.items():
             map_states[k] = v.cuda()
 

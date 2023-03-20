@@ -224,40 +224,46 @@ class Mapping:
         pose = frame.get_pose().cuda()
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
+        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
+        
         self.svo.insert(voxels.cpu().int())
 
-        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         per_point_cloud = o3d.t.geometry.PointCloud()
         per_point_cloud.point.positions = o3d.core.Tensor(points.detach().cpu().numpy().reshape(-1,3))
         per_point_cloud.point.colors = o3d.core.Tensor(colors.detach().cpu().numpy().reshape(-1,3))
         per_point_cloud = per_point_cloud.voxel_down_sample(voxel_size=0.05)
-    
         per_colors = torch.tensor(per_point_cloud.point.colors.numpy())
         features = self.points_encoder(per_colors)
-        print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         per_point_cloud.point.features = o3d.core.Tensor(features.detach().cpu().numpy())
-        print("\033[0;33;40m",'positions',per_point_cloud.point.positions.numpy().shape, "\033[0m")
-        print("\033[0;33;40m",'colors',per_point_cloud.point.colors.numpy().shape, "\033[0m")
-        print("\033[0;33;40m",'features',per_point_cloud.point.features.numpy().shape, "\033[0m")
-
+        # print("\033[0;33;40m",'positions',per_point_cloud.point.positions.numpy().shape, "\033[0m")
+        # print("\033[0;33;40m",'colors',per_point_cloud.point.colors.numpy().shape, "\033[0m")
+        # print("\033[0;33;40m",'features',per_point_cloud.point.features.numpy().shape, "\033[0m")
         if self.flag ==1:
             self.point_cloud = per_point_cloud
-            self.flag ==0
+            self.flag =0
         else:
             self.point_cloud = self.point_cloud.append(per_point_cloud)
-        print("\033[0;33;40m",'aaaaaaaaaaaaa', "\033[0m")
         self.point_cloud = self.point_cloud.voxel_down_sample(voxel_size=0.05)
-        print("\033[0;33;40m",'bbbbbbbbbbbbb', "\033[0m") 
-        
-        self.update_grid_features()
+
+        self.update_grid_pc_features()
 
 
     @torch.enable_grad()
-    def update_grid_features(self):
-        voxels, children, features = self.svo.get_centres_and_children()
+    def update_grid_pc_features(self):
+        voxels, children, features, pointclous = self.svo.get_centres_and_children()
+        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        print("\033[0;33;40m",'children',children.shape, "\033[0m")
+        print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        print("\033[0;33;40m",'pointclous',pointclous.shape, "\033[0m")
+        
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
-
+        
+        
         centres = centres.cuda().float()
         children = children.cuda().int()
         map_states = {}
@@ -265,7 +271,9 @@ class Mapping:
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
-        
+        map_states["points_xyz"] = torch.tensor(self.point_cloud.point.positions.numpy())
+        map_states["points_colors"] = torch.tensor(self.point_cloud.point.colors.numpy())
+        map_states["points_features"] = torch.tensor(self.point_cloud.point.features.numpy())
         self.map_states = map_states
         # self.map_pc_states = map_pc_states
 

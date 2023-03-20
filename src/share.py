@@ -135,12 +135,12 @@ class ShareData:
             # print("========== push_pose ==========")
             sys.stdout.flush()
             
-    def get_pointcloud(self):
-        with self.lock:
-            return self.pointcloud
+    # def get_pointcloud(self):
+    #     with self.lock:
+    #         return self.pointcloud
 
-    def set_pointcloud(self, pointcloud):
-        with self.lock:
-            self.pointcloud = pointcloud
+    # def set_pointcloud(self, pointcloud):
+    #     with self.lock:
+    #         self.pointcloud = pointcloud
 
     

@@ -14,6 +14,8 @@ class RGBDFrame(nn.Module):
         self.h, self.w = depth.shape
         self.rgb = rgb.cuda() 
         self.depth = depth.cuda() #/ 2
+        # self.rgb = rgb
+        # self.depth = depth #/ 2
         self.K = K
         # self.register_buffer("rgb", rgb)
         # self.register_buffer("depth", depth)

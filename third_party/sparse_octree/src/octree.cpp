@@ -48,6 +48,68 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size)
     // feats_array_ = torch::randn({MAX_NUM_VOXELS, feat_dim}, options) * 0.01;
 }
 
+// void Octree::insert(torch::Tensor pts)
+// {
+    // // temporal solution
+    // all_pts.push_back(pts);
+
+    // if (root_ == nullptr)
+    // {
+    //     std::cout << "Octree not initialized!" << std::endl;
+    // }
+
+    // auto points = pts.accessor<int, 2>();
+    // if (points.size(1) != 3)
+    // {
+    //     std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
+    //     return;
+    // }
+
+    // for (int i = 0; i < points.size(0); ++i)
+    // {
+    //     for (int j = 0; j < 8; ++j)
+    //     {
+            // int x = points[i][0] + incr_x[j];
+            // int y = points[i][1] + incr_y[j];
+            // int z = points[i][2] + incr_z[j];
+            // uint64_t key = encode(x, y, z);
+
+            // all_keys.insert(key);
+
+            // const unsigned int shift = MAX_BITS - max_level_ - 1;
+
+            // auto n = root_;
+            // unsigned edge = size_ / 2;
+            // for (int d = 1; d <= max_level_; edge /= 2, ++d)
+            // {
+            //     const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
+            //     // std::cout << "Level: " << d << " ChildID: " << childid << std::endl;
+                // auto tmp = n->child(childid);
+                // if (!tmp)
+                // {
+                //     const uint64_t code = key & MASK[d + shift];
+                //     const bool is_leaf = (d == max_level_);
+                //     // tmp = std::make_shared<Octant>();
+                //     tmp = new Octant();
+                //     tmp->code_ = code;
+                //     tmp->side_ = edge;
+                //     tmp->is_leaf_ = is_leaf;
+                //     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
+
+                //     n->children_mask_ = n->children_mask_ | (1 << childid);
+                //     n->child(childid) = tmp;
+                // }
+                // else
+                // {
+                //     if (tmp->type_ == FEATURE && j == 0)
+                //         tmp->type_ = SURFACE;
+                // }
+//                 n = tmp;
+//             }
+//         }
+//     }
+// }
+
 void Octree::insert(torch::Tensor pts)
 {
     // temporal solution
@@ -80,6 +142,7 @@ void Octree::insert(torch::Tensor pts)
 
             auto n = root_;
             unsigned edge = size_ / 2;
+            
             for (int d = 1; d <= max_level_; edge /= 2, ++d)
             {
                 const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
@@ -87,6 +150,7 @@ void Octree::insert(torch::Tensor pts)
                 auto tmp = n->child(childid);
                 if (!tmp)
                 {
+                    // 新的点在现有八叉树中，判断是否在最底层叶子节点
                     const uint64_t code = key & MASK[d + shift];
                     const bool is_leaf = (d == max_level_);
                     // tmp = std::make_shared<Octant>();
@@ -95,20 +159,39 @@ void Octree::insert(torch::Tensor pts)
                     tmp->side_ = edge;
                     tmp->is_leaf_ = is_leaf;
                     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
+                    if (is_leaf) {
+                        tmp->point_data_= encode(points[i][0], points[i][1], points[i][2]);  // 添加点云索引
+                    }
 
                     n->children_mask_ = n->children_mask_ | (1 << childid);
                     n->child(childid) = tmp;
                 }
                 else
-                {
+                {   
+                    // 新的点没在现有八叉树中，则创建子节点
                     if (tmp->type_ == FEATURE && j == 0)
                         tmp->type_ = SURFACE;
+
+                    if (tmp->is_leaf_) {
+                        tmp->point_data_= encode(points[i][0], points[i][1], points[i][2]); // 添加点云索引
+                        }
                 }
                 n = tmp;
             }
         }
     }
 }
+
+//     for (const auto& key : all_keys) {
+//     auto node = search(key);
+//     if (node && node->is_leaf_) {
+//         for (const auto& index : node->point_indices_) {
+//             node->point_data_.push_back(pts[index]);
+//         }
+//     }
+// }
+
+
 
 double Octree::try_insert(torch::Tensor pts)
 {
@@ -290,15 +373,18 @@ std::pair<int64_t, int64_t> Octree::count_recursive_internal(Octant *n)
     return sum;
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> Octree::get_centres_and_children()
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> Octree::get_centres_and_children()
 {
     auto node_count = count_nodes_internal();
     auto total_count = node_count.first;
     auto leaf_count = node_count.second;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
+    auto all_pointclouds = torch::ones({total_count, 3}, dtype(torch::kInt32));
     auto all_children = -torch::ones({total_count, 8}, dtype(torch::kFloat32));
     auto all_features = -torch::ones({total_count, 8}, dtype(torch::kInt32));
+
+
 
     std::queue<Octant *> all_nodes;
     all_nodes.push(root_);
@@ -309,9 +395,15 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> Octree::get_centres_and_
         all_nodes.pop();
 
         auto xyz = decode(node_ptr->code_);
+        auto pc_xyz = decode(node_ptr->point_data_);
+
         std::vector<float> coords = {xyz[0], xyz[1], xyz[2], float(node_ptr->side_)};
         auto voxel = torch::from_blob(coords.data(), {4}, dtype(torch::kFloat32));
         all_voxels[node_ptr->index_] = voxel;
+        
+        std::vector<float> coords_ = {pc_xyz[0], pc_xyz[1], pc_xyz[2]};
+        auto pc = torch::from_blob(coords_.data(), {3}, dtype(torch::kFloat32));
+        all_pointclouds[node_ptr->index_] = pc;
 
         if (node_ptr->type_ == SURFACE)
         {
@@ -338,9 +430,11 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> Octree::get_centres_and_
         }
     }
 
-    return std::make_tuple(all_voxels, all_children, all_features);
+    return std::make_tuple(all_voxels, all_children, all_features, all_pointclouds);
 }
-
+// all_voxels是一个N*4的张量，其中N是八叉树中非FEATURE类型的节点的数量。每一行代表一个节点对应的体素，包含了x,y,z坐标和边长。
+// all_children是一个N*8的张量，其中N和上面相同。每一行代表一个节点和其八个子节点之间的索引关系。如果某个子节点不存在或者是FEATURE类型，则对应位置为-1。
+// all_features是一个N*8的张量，其中N和上面相同。每一行代表一个节点对应体素的八个顶点是否有特征。如果某个顶点有特征，则对应位置为该特征节点在八叉树中的索引；否则为-1。
 int64_t Octree::count_nodes()
 {
     return count_recursive(root_);

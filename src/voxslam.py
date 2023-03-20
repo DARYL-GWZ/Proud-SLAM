@@ -48,6 +48,7 @@ class VoxSLAM:
         # initialize map with first frame
         self.tracker.process_first_frame(self.kf_buffer)
         self.processes = []
+        print("\033[0;33;40m",'完成slam类初始化', "\033[0m")
 
     def start(self):
         #建图进程

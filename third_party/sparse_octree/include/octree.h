@@ -21,6 +21,13 @@ public:
         is_leaf_ = false;
         children_mask_ = 0;
         type_ = NONLEAF;
+        point_data_ = 0;
+        // for (unsigned int i = 0; i < 10; i++)
+        // {
+        //     point_data_[i] = nullptr;
+        //     // feature_index_[i] = -1;
+        // }
+
         for (unsigned int i = 0; i < 8; i++)
         {
             child_ptr_[i] = nullptr;
@@ -28,6 +35,11 @@ public:
         }
     }
     ~Octant() {}
+    // int point_indices_;
+    // uint64_t *point_data_[10]; 
+    uint64_t point_data_; 
+
+    // torch::Tensor point_data_; 
 
     // std::shared_ptr<Octant> &child(const int x, const int y, const int z)
     // {
@@ -47,7 +59,7 @@ public:
     {
         return child_ptr_[offset];
     }
-
+    std::vector<torch::Tensor> pts_;
     uint64_t code_;
     bool is_leaf_;
     unsigned int side_;
@@ -102,7 +114,7 @@ public:
     int64_t leaves_count_recursive(Octant *n);
 
     // get voxel centres and childrens
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
 
 public:
     int size_;
@@ -112,6 +124,7 @@ public:
     // temporal solution
     double voxel_size_;
     std::vector<torch::Tensor> all_pts;
+  
 
 private:
     std::set<uint64_t> all_keys;

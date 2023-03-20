@@ -3,7 +3,9 @@ import torch
 import torch.nn.functional as F
 import open3d as o3d
 from .voxel_helpers import ray_intersect_vox, ray_sample
-
+import numpy as np
+from math import sqrt
+from annoy import AnnoyIndex
 
 def ray(ray_start, ray_dir, depths):
     return ray_start + ray_dir * depths
@@ -182,6 +184,31 @@ def eval_points(sdf_network, map_states, sampled_xyz, sampled_idx, voxel_size):
     #                     points[i: i + chunk_size], values)
     #     for i in range(0, points.size(0), chunk_size)], 0).view(-1, res, res, res, 4)
 
+# def sample_feature(query_xyz,query_fea,samples_xyz):
+#     d = np.array([])
+    # fea = np.zeros(shape=(1,query_fea.shape[1]))
+    # for i in range(0,query_xyz.shape[0]):
+    #     dis = sqrt((samples_xyz[0] - query_xyz[i][0])**2 + (samples_xyz[1] - query_xyz[i][1])**2+ (samples_xyz[2] - query_xyz[i][2])**2)
+    #     d = np.append(d, (1/dis))
+    # all_dis = np.sum(d)
+    # # query_fea [5 x 128]
+    # for j in range(0,query_xyz.shape[0]):
+    #     feature = np.multiply((d[j] / all_dis), query_fea[j][:]).reshape(1,query_fea.shape[1])
+    #     fea = np.add(fea, feature)
+    # # print("\033[0;33;40m",'fea',fea.shape, "\033[0m")
+    # return fea
+
+def sample_feature(query_xyz, query_fea, samples_xyz):
+    d = torch.Tensor([])
+    fea = torch.zeros((1, query_fea.shape[1]))
+    for i in range(query_xyz.shape[0]):
+        dis = torch.norm(samples_xyz - query_xyz[i], dim=1)
+        d = torch.cat((d, 1 / dis))
+    all_dis = torch.sum(d)
+    for j in range(query_xyz.shape[0]):
+        feature = torch.mul((d[j] / all_dis), query_fea[j]).reshape(1, query_fea.shape[1])
+        fea = torch.add(fea, feature)
+    return fea
 
 def render_rays(
         rays_o,
@@ -262,12 +289,53 @@ def render_rays(
     field_outputs = []
     if chunk_size < 0:
         chunk_size = num_points
+
+    # print("\033[0;33;40m",'points_xyz',map_states["points_xyz"].shape, "\033[0m")
+    # print("\033[0;33;40m",'points_colors',map_states["points_colors"].shape, "\033[0m")
+    # print("\033[0;33;40m",'points_features',map_states["points_features"].shape, "\033[0m")
+    
+    
+    # pcd = o3d.geometry.PointCloud()
+    # pcd.points = o3d.utility.Vector3dVector(map_states["points_xyz"].detach().cpu().numpy())
+    # tree = o3d.geometry.KDTreeFlann(pcd)
+    query_num = 5
+    # samples_features = np.empty((samples_valid['sampled_point_xyz'].shape[0],map_states["points_features"].shape[1]))
+
+    # for i in range(0,samples_valid['sampled_point_xyz'].shape[0]):
+    #     samples_xyz = samples_valid['sampled_point_xyz']
+        # samples_xyz = samples_valid['sampled_point_xyz'].cuda()
+        # print("\033[0;33;40m",'xxxxxxxxxxxxxxxxxxz', "\033[0m")
         
-    # tree = o3d.geometry.KDTreeFlann(map_pc_states)
-    # [k, idx, _] = tree.search_radius_vector_3d(query_point, radius)
+        # print("\033[0;33;40m",'samples_xyz',samples_xyz.shape, "\033[0m")
+        # [k, idx, _] = tree.search_knn_vector_3d(samples_xyz, query_num)
+        # query_fea = np.asarray(map_states["points_features"].cpu())[idx]
+        # query_xyz = np.asarray(map_states["points_xyz"])[idx]
+        # print("\033[0;33;40m",'query_fea',query_fea.shape, "\033[0m")
+        # print("\033[0;33;40m",'query_xyz',query_xyz.shape, "\033[0m")
+        # features = sample_feature(query_xyz,query_fea,samples_xyz[i])
+        # samples_features = [samples_features ,features]
+        # print("\033[0;33;40m",'samples_features1111',samples_features.shape, "\033[0m")
+        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        # samples_features = np.concatenate((samples_features, features), axis=0)
+        # print("\033[0;33;40m",'samples_features',samples_features.shape, "\033[0m")
+    # print("\033[0;33;40m",'samples_feature',samples_features, "\033[0m")
+    # print("\033[0;33;40m",'xxxxxxxxxxxxxxxxxxz', "\033[0m")   
+
+        
+    # samples_xyz = np.array([0.5, 0.5, 0.5])   
+    # [k, idx, _] = tree.search_knn_vector_3d(samples_xyz, query_num)   
+    # print("\033[0;33;40m",'k',k, "\033[0m")
+    # print("\033[0;33;40m",'idx',idx, "\033[0m")
+    # print("\033[0;33;40m",'pcd中的最近点',np.asarray(pcd.points)[idx[:], :], "\033[0m")
+    # aa = map_states["points_xyz"][idx]
+    # print("\033[0;33;40m",'数组中的最近点',aa, "\033[0m")
+    
+    
     for i in range(0, num_points, chunk_size):
         chunk_samples = {name: s[i:i+chunk_size]
                          for name, s in samples_valid.items()}
+        # print("\033[0;33;40m",'chunk_samples',chunk_samples['sampled_point_depth'].shape, "\033[0m")
+
 
         # get encoder features as inputs
         if profiler is not None:
