@@ -61,7 +61,7 @@ def offset_points(point_xyz, quarter_voxel=1, offset_only=False, bits=2):
 
 
 @torch.enable_grad()
-def get_embeddings(sampled_xyz, point_xyz, point_feats, voxel_size):
+def get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size):
     # tri-linear interpolation
     p = ((sampled_xyz - point_xyz) / voxel_size + 0.5).unsqueeze(1)
     q = offset_points(p, 0.5, offset_only=True).unsqueeze(0) + 0.5
@@ -72,11 +72,13 @@ def get_embeddings(sampled_xyz, point_xyz, point_feats, voxel_size):
 
 
 @torch.enable_grad()
-def get_features(samples, map_states, voxel_size):
+def get_features_vox(samples, map_states, voxel_size):
     # encoder states
     point_feats = map_states["voxel_vertex_idx"].cuda()
     point_xyz = map_states["voxel_center_xyz"].cuda()
     values = map_states["voxel_vertex_emb"].cuda()
+    pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
+    pointclouds_feature = map_states["pointclouds_feature"].cuda()
 
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
@@ -86,10 +88,66 @@ def get_features(samples, map_states, voxel_size):
     point_xyz = F.embedding(sampled_idx, point_xyz)
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
-    feats = get_embeddings(sampled_xyz, point_xyz, point_feats, voxel_size)
+    print("\033[0;33;40m",'----------------', "\033[0m")
+    print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
+    
+    feats = get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size)
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
 
+
+@torch.enable_grad()
+def get_features_pcd(samples, map_states, voxel_size):
+    # encoder states
+    point_feats = map_states["voxel_vertex_idx"].cuda()
+    point_xyz = map_states["voxel_center_xyz"].cuda()
+    values = map_states["voxel_vertex_emb"].cuda()
+    pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
+    pointclouds_feature = map_states["pointclouds_feature"].cuda()
+    
+    # print("\033[0;33;40m",'----------------', "\033[0m")
+    # print("\033[0;33;40m",'point_xyz11',point_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'point_xyz11',pointclouds_xyz.shape, "\033[0m")
+    sampled_idx = samples["sampled_point_voxel_idx"].long()
+    sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
+    sampled_dis = samples["sampled_point_distance"]
+
+    pointclouds_xyz = F.embedding(sampled_idx, pointclouds_xyz)
+    point_feats = F.embedding(F.embedding(
+        sampled_idx, point_feats), pointclouds_feature).view(pointclouds_xyz.size(0), -1)
+    print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
+    
+    # feats = get_embeddings_vox(sampled_xyz, pointclouds_xyz, point_feats, voxel_size)
+    # inputs = {"dists": sampled_dis, "emb": feats}
+    inputs = {"dists": sampled_dis}
+    return inputs
+
+@torch.enable_grad()
+def get_embeddings_pcd(sampled_xyz, pointclouds_xyz, point_feats, voxel_size):
+    # tri-linear interpolation
+    p = ((sampled_xyz - pointclouds_xyz) / voxel_size + 0.5).unsqueeze(1)
+    q = offset_points(p, 0.5, offset_only=True).unsqueeze(0) + 0.5
+    feats = trilinear_interp(p, q, point_feats).float()
+    # if self.args.local_coord:
+    # feats = torch.cat([(p-.5).squeeze(1).float(), feats], dim=-1)
+    return feats
+# 根据体素中点云的特征计算采样点的特征
+@torch.enable_grad()
+def sample_feature(query_xyz, query_fea, samples_xyz):
+    d = torch.Tensor([])
+    fea = torch.zeros((1, query_fea.shape[1]))
+    for i in range(query_xyz.shape[0]):
+        dis = torch.norm(samples_xyz - query_xyz[i], dim=1)
+        d = torch.cat((d, 1 / dis))
+    all_dis = torch.sum(d)
+    for j in range(query_xyz.shape[0]):
+        feature = torch.mul((d[j] / all_dis), query_fea[j]).reshape(1, query_fea.shape[1])
+        fea = torch.add(fea, feature)
+    return fea
 
 @torch.no_grad()
 def get_scores(sdf_network, map_states, voxel_size, bits=8):
@@ -121,7 +179,7 @@ def get_scores(sdf_network, map_states, voxel_size, bits=8):
         if sampled_xyz.shape[0] == 0:
             return
 
-        field_inputs = get_features(
+        field_inputs = get_features_vox(
             {
                 "sampled_point_xyz": sampled_xyz,
                 "sampled_point_voxel_idx": sampled_idx,
@@ -160,7 +218,7 @@ def eval_points(sdf_network, map_states, sampled_xyz, sampled_idx, voxel_size):
     if sampled_xyz.shape[0] == 0:
         return
 
-    field_inputs = get_features(
+    field_inputs = get_features_vox(
         {
             "sampled_point_xyz": sampled_xyz,
             "sampled_point_voxel_idx": sampled_idx,
@@ -198,17 +256,7 @@ def eval_points(sdf_network, map_states, sampled_xyz, sampled_idx, voxel_size):
     # # print("\033[0;33;40m",'fea',fea.shape, "\033[0m")
     # return fea
 
-def sample_feature(query_xyz, query_fea, samples_xyz):
-    d = torch.Tensor([])
-    fea = torch.zeros((1, query_fea.shape[1]))
-    for i in range(query_xyz.shape[0]):
-        dis = torch.norm(samples_xyz - query_xyz[i], dim=1)
-        d = torch.cat((d, 1 / dis))
-    all_dis = torch.sum(d)
-    for j in range(query_xyz.shape[0]):
-        feature = torch.mul((d[j] / all_dis), query_fea[j]).reshape(1, query_fea.shape[1])
-        fea = torch.add(fea, feature)
-    return fea
+
 
 def render_rays(
         rays_o,
@@ -278,11 +326,13 @@ def render_rays(
     # caculate the final sampled point's position and direction
     samples['sampled_point_xyz'] = sampled_xyz
     samples['sampled_point_ray_direction'] = sampled_dir
-    # apply mask
-    #     samples = {
+   
+    #     samples_valid = {
     #     "sampled_point_depth": sampled_depth,
     #     "sampled_point_distance": sampled_dists,
     #     "sampled_point_voxel_idx": sampled_idx,
+    #      sampled_point_xyz
+    #      sampled_point_ray_direction
     # }
     samples_valid = {name: s[sample_mask] for name, s in samples.items()}
     num_points = samples_valid['sampled_point_depth'].shape[0]
@@ -290,46 +340,7 @@ def render_rays(
     if chunk_size < 0:
         chunk_size = num_points
 
-    # print("\033[0;33;40m",'points_xyz',map_states["points_xyz"].shape, "\033[0m")
-    # print("\033[0;33;40m",'points_colors',map_states["points_colors"].shape, "\033[0m")
-    # print("\033[0;33;40m",'points_features',map_states["points_features"].shape, "\033[0m")
-    
-    
-    # pcd = o3d.geometry.PointCloud()
-    # pcd.points = o3d.utility.Vector3dVector(map_states["points_xyz"].detach().cpu().numpy())
-    # tree = o3d.geometry.KDTreeFlann(pcd)
-    query_num = 5
-    # samples_features = np.empty((samples_valid['sampled_point_xyz'].shape[0],map_states["points_features"].shape[1]))
-
-    # for i in range(0,samples_valid['sampled_point_xyz'].shape[0]):
-    #     samples_xyz = samples_valid['sampled_point_xyz']
-        # samples_xyz = samples_valid['sampled_point_xyz'].cuda()
-        # print("\033[0;33;40m",'xxxxxxxxxxxxxxxxxxz', "\033[0m")
-        
-        # print("\033[0;33;40m",'samples_xyz',samples_xyz.shape, "\033[0m")
-        # [k, idx, _] = tree.search_knn_vector_3d(samples_xyz, query_num)
-        # query_fea = np.asarray(map_states["points_features"].cpu())[idx]
-        # query_xyz = np.asarray(map_states["points_xyz"])[idx]
-        # print("\033[0;33;40m",'query_fea',query_fea.shape, "\033[0m")
-        # print("\033[0;33;40m",'query_xyz',query_xyz.shape, "\033[0m")
-        # features = sample_feature(query_xyz,query_fea,samples_xyz[i])
-        # samples_features = [samples_features ,features]
-        # print("\033[0;33;40m",'samples_features1111',samples_features.shape, "\033[0m")
-        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
-        # samples_features = np.concatenate((samples_features, features), axis=0)
-        # print("\033[0;33;40m",'samples_features',samples_features.shape, "\033[0m")
-    # print("\033[0;33;40m",'samples_feature',samples_features, "\033[0m")
-    # print("\033[0;33;40m",'xxxxxxxxxxxxxxxxxxz', "\033[0m")   
-
-        
-    # samples_xyz = np.array([0.5, 0.5, 0.5])   
-    # [k, idx, _] = tree.search_knn_vector_3d(samples_xyz, query_num)   
-    # print("\033[0;33;40m",'k',k, "\033[0m")
-    # print("\033[0;33;40m",'idx',idx, "\033[0m")
-    # print("\033[0;33;40m",'pcd中的最近点',np.asarray(pcd.points)[idx[:], :], "\033[0m")
-    # aa = map_states["points_xyz"][idx]
-    # print("\033[0;33;40m",'数组中的最近点',aa, "\033[0m")
-    
+    # print("\033[0;33;40m",'samples_valid[sampled_point_xyz]',samples_valid['sampled_point_xyz'].shape, "\033[0m")
     
     for i in range(0, num_points, chunk_size):
         chunk_samples = {name: s[i:i+chunk_size]
@@ -339,15 +350,17 @@ def render_rays(
 
         # get encoder features as inputs
         if profiler is not None:
-            profiler.tick("get_features")
+            profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
-        chunk_inputs = get_features(chunk_samples, map_states, voxel_size)
+        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        chunk_inputs_color = get_features_pcd(chunk_samples, map_states, voxel_size)
+        
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
-        # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
+        # print("\033[0;33;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
         
         if profiler is not None:
-            profiler.tok("get_features")
+            profiler.tok("get_features_vox")
 
         # forward implicit fields
         if profiler is not None:
@@ -363,6 +376,7 @@ def render_rays(
 
     outputs = {'sample_mask': sample_mask}
 
+    # 对sdf和color进行积分
     sdf = masked_scatter_ones(sample_mask, field_outputs['sdf']).squeeze(-1)
     colour = masked_scatter(sample_mask, field_outputs['color'])
     # colour = torch.sigmoid(colour)
@@ -427,6 +441,7 @@ def bundle_adjust_frames(
     learning_rate=[1e-2, 5e-3],
     embed_optim=None,
     model_optim=None,
+    resnet_optim=None,
     update_pose=True,
 ):
     # optimize_params = [{'params': embeddings, 'lr': learning_rate[0]}]
@@ -435,7 +450,10 @@ def bundle_adjust_frames(
         # optimize_params += [{'params': sdf_network.parameters(),
         #                      'lr': learning_rate[0]}]
         optimizers += [model_optim]
-
+        
+    if resnet_optim is not None:
+        optimizers += [resnet_optim]
+        
     # optimize_params=[]
     # 先验证下有效关键帧
     for keyframe in keyframe_graph:

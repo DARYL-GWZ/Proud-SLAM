@@ -54,55 +54,55 @@ import numpy as np
 # pcd.point.labels = o3d.core.Tensor([3, 1, 4], o3d.core.int32, device)
 
 # -------------------最近邻搜索----------------------------
-import torch
-import time
-from annoy import AnnoyIndex
-def find_nearest_points(tensor, point, m):
-    # """
-    # 在给定的tensor中找到离point最近的m个点，并返回它们的索引。
+# import torch
+# import time
+# from annoy import AnnoyIndex
+# def find_nearest_points(tensor, point, m):
+#     # """
+#     # 在给定的tensor中找到离point最近的m个点，并返回它们的索引。
     
-    # 参数：
-    # tensor: PyTorch张量，形状为[n, 3]，其中n是点的数量，每个点都有三个坐标。
-    # point: 一个包含三个坐标的PyTorch张量，形状为[3,]。
-    # m: 要查找的最近点的数量。
+#     # 参数：
+#     # tensor: PyTorch张量，形状为[n, 3]，其中n是点的数量，每个点都有三个坐标。
+#     # point: 一个包含三个坐标的PyTorch张量，形状为[3,]。
+#     # m: 要查找的最近点的数量。
     
-    # 返回值：
-    # 一个包含m个最近点的索引的PyTorch张量，形状为[m,]。
-    # """
-    # 创建一个AnnoyIndex对象，用于查找最近邻点
-    index = AnnoyIndex(3, 'euclidean')
+#     # 返回值：
+#     # 一个包含m个最近点的索引的PyTorch张量，形状为[m,]。
+#     # """
+#     # 创建一个AnnoyIndex对象，用于查找最近邻点
+#     index = AnnoyIndex(3, 'euclidean')
     
-    # 将每个点添加到索引中
-    for i, x in enumerate(tensor):
-        index.add_item(i, x.numpy())
+#     # 将每个点添加到索引中
+#     for i, x in enumerate(tensor):
+#         index.add_item(i, x.numpy())
     
     # 构建索引树，以便进行快速查找
-    index.build(10)  # 10个近邻
+    # index.build(10)  # 10个近邻
     
-    # 查找最近的m个点的索引
-    indices = index.get_nns_by_vector(point.numpy(), m)
+    # # 查找最近的m个点的索引
+    # indices = index.get_nns_by_vector(point.numpy(), m)
     
-    # 将结果转换为PyTorch张量
-    indices = torch.tensor(indices)
+    # # 将结果转换为PyTorch张量
+    # indices = torch.tensor(indices)
     
-    return indices
+    # return indices
 
 # 测试数据
-n = 20000  # 点云中的点数
-m = 5  # 要查找的最近点的数量
-point = torch.tensor([1, 2, 3])
+# n = 20000  # 点云中的点数
+# m = 5  # 要查找的最近点的数量
+# point = torch.tensor([1, 2, 3])
 
-# 生成一个随机的点云张量
-tensor = torch.randn(n, 3)
+# # 生成一个随机的点云张量
+# tensor = torch.randn(n, 3)
 
-# 测试函数
-start = time.time()
-indices = find_nearest_points(tensor, point, m)
-end = time.time()
+# # 测试函数
+# start = time.time()
+# indices = find_nearest_points(tensor, point, m)
+# end = time.time()
 
-# 输出结果
-print(f"最近的{m}个点的索引：{indices}")
-print(f"函数执行时间：{end - start:.6f}秒")
+# # 输出结果
+# print(f"最近的{m}个点的索引：{indices}")
+# print(f"函数执行时间：{end - start:.6f}秒")
 # ------------------------------------------------------------------------
 
 # ------------------GPU最近邻搜索--------------------------------
@@ -142,3 +142,37 @@ print(f"函数执行时间：{end - start:.6f}秒")
 # indices = find_nearest_points(points, point, m)
 # end = time.time()
 # ------------------------------------------------------------
+import torch
+import torch.nn as nn
+import torchvision.models as models
+import time
+
+class PointsResNet(nn.Module):
+    def __init__(self, feature_n):
+        super(PointsResNet, self).__init__()
+        resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+        modules = list(resnet.children())[:-1]
+        self.resnet = nn.Sequential(*modules)
+        self.fc = nn.Linear(resnet.fc.in_features, feature_n)
+
+    def forward(self, x):
+        # print("\033[0;33;40m",'x1',x.shape, x.dtype, "\033[0m")
+        x = x.permute(1, 0).reshape(-1, 3, 1, 1)
+        # print("\033[0;33;40m",'x2',x.shape,x.dtype, "\033[0m")
+        x = self.resnet(x)
+        # print("\033[0;33;40m",'x3',x.shape, "\033[0m")
+        x = x.view(-1, 512)
+        # print("\033[0;33;40m",'x4',x.shape, "\033[0m")
+        x = self.fc(x)
+        return x
+
+
+model = PointsResNet(128)
+start = time.time()
+image = torch.rand(120000, 3)
+features = model(image)
+print(features.shape) # 输出: torch.Size([120000, 128])
+end = time.time()
+
+# # 输出结果
+print(f"函数执行时间：{end - start:.6f}秒")

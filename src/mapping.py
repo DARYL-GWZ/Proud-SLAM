@@ -76,18 +76,12 @@ class Mapping:
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size)
         
-        # self.pointcloud = []
-        # self.pointcloud = torch.Tensor(self.pointcloud)
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
         self.points_encoder = PointsResNet(128)
-        self.point_cloud = o3d.t.geometry.PointCloud()
-        self.flag = 1
-        # self.point_cloud.point.features = None
-        # self.point_cloud.point.positions = None
-        # self.point_cloud.point.colors = None
-        
+        self.resnet_optim = torch.optim.Adam(self.points_encoder.parameters(), lr=5e-3) 
+
         
     def spin(self, share_data,kf_buffer):
         # print("************mapping process started!******")
@@ -141,7 +135,7 @@ class Mapping:
         self.num_iterations = 1
         for iter in range(self.final_iter):
             self.do_mapping(share_data, tracked_frame=None,
-                            update_pose=False, update_decoder=False)
+                            update_pose=False, update_decoder=False,update_resnet=False)
 
         print("******* extracting final mesh *******")
         pose = self.get_updated_poses()
@@ -157,7 +151,8 @@ class Mapping:
             share_data,
             tracked_frame=None,
             update_pose=True,
-            update_decoder=True
+            update_decoder=True,
+            update_resnet=True
     ):
         # self.map.create_voxels(self.keyframe_graph[0])
         self.decoder.train()
@@ -180,6 +175,7 @@ class Mapping:
             learning_rate=[1e-2, 1e-3],
             embed_optim=self.embed_optim,
             model_optim=self.model_optim if update_decoder else None,
+            resnet_optim = self.resnet_optim if update_resnet else None,
             update_pose=update_pose,
         )
 
@@ -224,45 +220,28 @@ class Mapping:
         pose = frame.get_pose().cuda()
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
-        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
-        print("\033[0;33;40m",'points',points.shape, "\033[0m")
-        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
-        
-        self.svo.insert(voxels.cpu().int())
-
+        # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'points',points.shape, "\033[0m")
-        per_point_cloud = o3d.t.geometry.PointCloud()
-        per_point_cloud.point.positions = o3d.core.Tensor(points.detach().cpu().numpy().reshape(-1,3))
-        per_point_cloud.point.colors = o3d.core.Tensor(colors.detach().cpu().numpy().reshape(-1,3))
-        per_point_cloud = per_point_cloud.voxel_down_sample(voxel_size=0.05)
-        per_colors = torch.tensor(per_point_cloud.point.colors.numpy())
-        features = self.points_encoder(per_colors)
-        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
-        per_point_cloud.point.features = o3d.core.Tensor(features.detach().cpu().numpy())
-        # print("\033[0;33;40m",'positions',per_point_cloud.point.positions.numpy().shape, "\033[0m")
-        # print("\033[0;33;40m",'colors',per_point_cloud.point.colors.numpy().shape, "\033[0m")
-        # print("\033[0;33;40m",'features',per_point_cloud.point.features.numpy().shape, "\033[0m")
-        if self.flag ==1:
-            self.point_cloud = per_point_cloud
-            self.flag =0
-        else:
-            self.point_cloud = self.point_cloud.append(per_point_cloud)
-        self.point_cloud = self.point_cloud.voxel_down_sample(voxel_size=0.05)
+        # print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
+        
+        self.svo.insert(voxels.cpu().int(),colors.cpu().int())
 
         self.update_grid_pc_features()
 
 
     @torch.enable_grad()
     def update_grid_pc_features(self):
-        voxels, children, features, pointclous = self.svo.get_centres_and_children()
-        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
-        print("\033[0;33;40m",'children',children.shape, "\033[0m")
-        print("\033[0;33;40m",'features',features.shape, "\033[0m")
-        print("\033[0;33;40m",'pointclous',pointclous.shape, "\033[0m")
-        
+        voxels, children, features, pcd_xyz,pcd_color = self.svo.get_centres_and_children()
+        # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        # print("\033[0;33;40m",'children',children.shape, "\033[0m")
+        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
+        # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
+        pc_xyz = (pcd_xyz[:, :3] + pcd_xyz[:, -1:] / 2) * self.voxel_size
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
-        
+        pc_features = self.points_encoder(pcd_color)
+        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         
         centres = centres.cuda().float()
         children = children.cuda().int()
@@ -271,11 +250,10 @@ class Mapping:
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
-        map_states["points_xyz"] = torch.tensor(self.point_cloud.point.positions.numpy())
-        map_states["points_colors"] = torch.tensor(self.point_cloud.point.colors.numpy())
-        map_states["points_features"] = torch.tensor(self.point_cloud.point.features.numpy())
+        map_states["pointclouds_xyz"] = pc_xyz
+        map_states["pointclouds_color"] = pcd_color
+        map_states["pointclouds_feature"] = pc_features
         self.map_states = map_states
-        # self.map_pc_states = map_pc_states
 
 
     @torch.no_grad()
@@ -294,7 +272,7 @@ class Mapping:
         sdf_network = self.decoder
         sdf_network.eval()
 
-        voxels, _, features = self.svo.get_centres_and_children()
+        voxels, _, features,_,_ = self.svo.get_centres_and_children()
         index = features.eq(-1).any(-1)
         voxels = voxels[~index, :]
         features = features[~index, :]
@@ -314,7 +292,7 @@ class Mapping:
 
     @torch.no_grad()
     def extract_voxels(self, offset=-10):
-        voxels, _, features = self.svo.get_centres_and_children()
+        voxels, _, features,_,_ = self.svo.get_centres_and_children()
         index = features.eq(-1).any(-1)
         voxels = voxels[~index, :]
         features = features[~index, :]

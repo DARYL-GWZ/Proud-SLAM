@@ -21,7 +21,9 @@ public:
         is_leaf_ = false;
         children_mask_ = 0;
         type_ = NONLEAF;
-        point_data_ = 0;
+        point_data_xyz = 0;
+        point_data_color = 0;
+
         // for (unsigned int i = 0; i < 10; i++)
         // {
         //     point_data_[i] = nullptr;
@@ -37,7 +39,9 @@ public:
     ~Octant() {}
     // int point_indices_;
     // uint64_t *point_data_[10]; 
-    uint64_t point_data_; 
+    uint64_t point_data_xyz; 
+    uint64_t point_data_color; 
+
 
     // torch::Tensor point_data_; 
 
@@ -84,7 +88,7 @@ public:
     void init(int64_t grid_dim, int64_t feat_dim, double voxel_size);
 
     // allocate voxels
-    void insert(torch::Tensor vox);
+    void insert(torch::Tensor vox,torch::Tensor color);
     double try_insert(torch::Tensor pts);
 
     // find a particular octant
@@ -114,7 +118,7 @@ public:
     int64_t leaves_count_recursive(Octant *n);
 
     // get voxel centres and childrens
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
 
 public:
     int size_;

@@ -23,7 +23,7 @@ Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vecto
     init(grid_dim, feat_dim, voxel_size);
     for (auto &pt : all_pts)
     {
-        insert(pt);
+        insert(pt,pt);
     }
 }
 
@@ -110,7 +110,7 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size)
 //     }
 // }
 
-void Octree::insert(torch::Tensor pts)
+void Octree::insert(torch::Tensor pts, torch::Tensor color )
 {
     // temporal solution
     all_pts.push_back(pts);
@@ -121,6 +121,7 @@ void Octree::insert(torch::Tensor pts)
     }
 
     auto points = pts.accessor<int, 2>();
+    auto colors = color.accessor<int, 2>();
     if (points.size(1) != 3)
     {
         std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
@@ -160,7 +161,8 @@ void Octree::insert(torch::Tensor pts)
                     tmp->is_leaf_ = is_leaf;
                     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
                     if (is_leaf) {
-                        tmp->point_data_= encode(points[i][0], points[i][1], points[i][2]);  // 添加点云索引
+                        tmp->point_data_xyz= encode(points[i][0], points[i][1], points[i][2]);  // 添加点云索引
+                        tmp->point_data_color= encode(colors[i][0], colors[i][1], colors[i][2]);  // 添加点云索引
                     }
 
                     n->children_mask_ = n->children_mask_ | (1 << childid);
@@ -173,7 +175,8 @@ void Octree::insert(torch::Tensor pts)
                         tmp->type_ = SURFACE;
 
                     if (tmp->is_leaf_) {
-                        tmp->point_data_= encode(points[i][0], points[i][1], points[i][2]); // 添加点云索引
+                        tmp->point_data_xyz= encode(points[i][0], points[i][1], points[i][2]); // 添加点云索引
+                        tmp->point_data_color= encode(colors[i][0], colors[i][1], colors[i][2]);  // 添加点云索引
                         }
                 }
                 n = tmp;
@@ -182,14 +185,6 @@ void Octree::insert(torch::Tensor pts)
     }
 }
 
-//     for (const auto& key : all_keys) {
-//     auto node = search(key);
-//     if (node && node->is_leaf_) {
-//         for (const auto& index : node->point_indices_) {
-//             node->point_data_.push_back(pts[index]);
-//         }
-//     }
-// }
 
 
 
@@ -373,14 +368,15 @@ std::pair<int64_t, int64_t> Octree::count_recursive_internal(Octant *n)
     return sum;
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> Octree::get_centres_and_children()
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> Octree::get_centres_and_children()
 {
     auto node_count = count_nodes_internal();
     auto total_count = node_count.first;
     auto leaf_count = node_count.second;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
-    auto all_pointclouds = torch::ones({total_count, 3}, dtype(torch::kInt32));
+    auto all_pointclouds_xyz = torch::ones({total_count, 4}, dtype(torch::kFloat32));
+    auto all_pointclouds_colors = torch::ones({total_count, 3}, dtype(torch::kFloat32));
     auto all_children = -torch::ones({total_count, 8}, dtype(torch::kFloat32));
     auto all_features = -torch::ones({total_count, 8}, dtype(torch::kInt32));
 
@@ -395,15 +391,21 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> Octree::g
         all_nodes.pop();
 
         auto xyz = decode(node_ptr->code_);
-        auto pc_xyz = decode(node_ptr->point_data_);
+        auto pc_xyz = decode(node_ptr->point_data_xyz);
+        auto pc_color = decode(node_ptr->point_data_color);
+
 
         std::vector<float> coords = {xyz[0], xyz[1], xyz[2], float(node_ptr->side_)};
         auto voxel = torch::from_blob(coords.data(), {4}, dtype(torch::kFloat32));
         all_voxels[node_ptr->index_] = voxel;
         
-        std::vector<float> coords_ = {pc_xyz[0], pc_xyz[1], pc_xyz[2]};
-        auto pc = torch::from_blob(coords_.data(), {3}, dtype(torch::kFloat32));
-        all_pointclouds[node_ptr->index_] = pc;
+        std::vector<float> coords_xyz = {pc_xyz[0], pc_xyz[1], pc_xyz[2], float(node_ptr->side_)};
+        auto pc_position = torch::from_blob(coords_xyz.data(), {4}, dtype(torch::kFloat32));
+        all_pointclouds_xyz[node_ptr->index_] = pc_position;
+
+        std::vector<float> coords_color = {pc_color[0], pc_color[1], pc_color[2]};
+        auto pc_rgb = torch::from_blob(coords_color.data(), {3}, dtype(torch::kFloat32));
+        all_pointclouds_colors[node_ptr->index_] = pc_rgb;
 
         if (node_ptr->type_ == SURFACE)
         {
@@ -430,7 +432,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> Octree::g
         }
     }
 
-    return std::make_tuple(all_voxels, all_children, all_features, all_pointclouds);
+    return std::make_tuple(all_voxels, all_children, all_features, all_pointclouds_xyz,all_pointclouds_colors);
 }
 // all_voxels是一个N*4的张量，其中N是八叉树中非FEATURE类型的节点的数量。每一行代表一个节点对应的体素，包含了x,y,z坐标和边长。
 // all_children是一个N*8的张量，其中N和上面相同。每一行代表一个节点和其八个子节点之间的索引关系。如果某个子节点不存在或者是FEATURE类型，则对应位置为-1。
