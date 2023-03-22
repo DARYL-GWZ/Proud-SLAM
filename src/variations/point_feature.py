@@ -10,15 +10,18 @@ class PointsResNet(nn.Module):
         self.resnet = nn.Sequential(*modules)
         self.fc = nn.Linear(resnet.fc.in_features, feature_n)
 
-    def forward(self, x):
-        # print("\033[0;33;40m",'x1',x.shape, x.dtype, "\033[0m")
-        x = x.permute(1, 0).reshape(-1, 3, 1, 1)
-        # print("\033[0;33;40m",'x2',x.shape,x.dtype, "\033[0m")
+    def forward(self, x1):
+        # print("\033[0;33;40m",'x1',x1.shape, "\033[0m")
+        x = x1.reshape(-1, 3, 1, 1)
+        # print("\033[0;33;40m",'x2',x.shape, "\033[0m")
         x = self.resnet(x)
         # print("\033[0;33;40m",'x3',x.shape, "\033[0m")
         x = x.view(-1, 512)
         # print("\033[0;33;40m",'x4',x.shape, "\033[0m")
         x = self.fc(x)
+        # print("\033[0;33;40m",'x5',x.shape, "\033[0m")
+        x= x.reshape(-1, x1.shape[1], x.shape[1])
+        # print("\033[0;33;40m",'x6',x.shape, "\033[0m")
         return x
     
 # model = PointsResNet(128)

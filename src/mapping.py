@@ -80,7 +80,7 @@ class Mapping:
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
-        self.points_encoder = PointsResNet(128)
+        self.points_encoder = PointsResNet(64)
         self.resnet_optim = torch.optim.Adam(self.points_encoder.parameters(), lr=5e-3) 
 
         
@@ -233,20 +233,16 @@ class Mapping:
     @torch.enable_grad()
     def update_grid_pc_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
-        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
-        print("\033[0;33;40m",'children',children.shape, "\033[0m")
-        print("\033[0;33;40m",'features',features.shape, "\033[0m")
-        print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
-        print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
-        pc_xyz = (pcd_xyz[:,:, :3] + voxels[:, -1:] / 2) * self.voxel_size
+        # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        # print("\033[0;33;40m",'children',children.shape, "\033[0m")
+        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
+        # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
+        pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:,-1:] / 2) * self.voxel_size
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
-        # pc_features = self.points_encoder(pcd_color)
-        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
-        
-        pc_xyz = torch.rand(10, 3)
-        pc_features = torch.rand(10, 3)
-        
+        pcd_features = self.points_encoder(pcd_color)
+        # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
         map_states = {}
@@ -254,9 +250,9 @@ class Mapping:
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
-        map_states["pointclouds_xyz"] = pc_xyz
+        map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
-        map_states["pointclouds_feature"] = pc_features
+        map_states["pointclouds_feature"] = pcd_features
         self.map_states = map_states
 
 

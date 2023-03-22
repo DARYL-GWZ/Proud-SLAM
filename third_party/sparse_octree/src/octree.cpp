@@ -333,7 +333,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     auto leaf_count = node_count.second;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
-    auto all_pointclouds_xyz = torch::ones({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
+    auto all_pointclouds_xyz = torch::ones({total_count, MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));
     auto all_pointclouds_colors = torch::ones({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
     auto all_children = -torch::ones({total_count, 8}, dtype(torch::kFloat32));
     auto all_features = -torch::ones({total_count, 8}, dtype(torch::kInt32));
@@ -364,6 +364,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
             xyz_array[i][0]=xyz_[0];
             xyz_array[i][1]=xyz_[1];
             xyz_array[i][2]=xyz_[2];
+            xyz_array[i][3]=float(node_ptr->side_);
             auto color_ = decode(node_ptr->point_data_color[i]);
             color_array[i][0]=color_[0];
             color_array[i][1]=color_[1];
@@ -371,7 +372,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         }
         // std::cout << "xyz_array" << xyz_array<< std::endl;
 
-        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
+        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));
         all_pointclouds_xyz[node_ptr->index_] = pc_position;
 
         auto pc_rgb = torch::from_blob(color_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
