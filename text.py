@@ -141,38 +141,58 @@ import numpy as np
 # start = time.time()
 # indices = find_nearest_points(points, point, m)
 # end = time.time()
-# ------------------------------------------------------------
+# -------------------------resnet text----------------
+# import torch
+# import torch.nn as nn
+# import torchvision.models as models
+# import time
+
+# class PointsResNet(nn.Module):
+#     def __init__(self, feature_n):
+#         super(PointsResNet, self).__init__()
+#         resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+#         modules = list(resnet.children())[:-1]
+#         self.resnet = nn.Sequential(*modules)
+#         self.fc = nn.Linear(resnet.fc.in_features, feature_n)
+
+#     def forward(self, x):
+#         # print("\033[0;33;40m",'x1',x.shape, x.dtype, "\033[0m")
+#         x = x.permute(1, 0).reshape(-1, 3, 1, 1)
+#         # print("\033[0;33;40m",'x2',x.shape,x.dtype, "\033[0m")
+#         x = self.resnet(x)
+#         # print("\033[0;33;40m",'x3',x.shape, "\033[0m")
+#         x = x.view(-1, 512)
+#         # print("\033[0;33;40m",'x4',x.shape, "\033[0m")
+#         x = self.fc(x)
+#         return x
+
+
+# model = PointsResNet(128)
+# start = time.time()
+# image = torch.rand(120000, 3)
+# features = model(image)
+# print(features.shape) # 输出: torch.Size([120000, 128])
+# end = time.time()
+
+# # # 输出结果
+# print(f"函数执行时间：{end - start:.6f}秒")
+
+
+# ---------------------octree text----------------
 import torch
-import torch.nn as nn
-import torchvision.models as models
-import time
+torch.classes.load_library(
+    "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
 
-class PointsResNet(nn.Module):
-    def __init__(self, feature_n):
-        super(PointsResNet, self).__init__()
-        resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-        modules = list(resnet.children())[:-1]
-        self.resnet = nn.Sequential(*modules)
-        self.fc = nn.Linear(resnet.fc.in_features, feature_n)
+svo = torch.classes.svo.Octree()
+svo.init(256, 16, 0.2, 8)
 
-    def forward(self, x):
-        # print("\033[0;33;40m",'x1',x.shape, x.dtype, "\033[0m")
-        x = x.permute(1, 0).reshape(-1, 3, 1, 1)
-        # print("\033[0;33;40m",'x2',x.shape,x.dtype, "\033[0m")
-        x = self.resnet(x)
-        # print("\033[0;33;40m",'x3',x.shape, "\033[0m")
-        x = x.view(-1, 512)
-        # print("\033[0;33;40m",'x4',x.shape, "\033[0m")
-        x = self.fc(x)
-        return x
+voxels = torch.rand(10, 3)
+colors = torch.rand(10, 3)
 
-
-model = PointsResNet(128)
-start = time.time()
-image = torch.rand(120000, 3)
-features = model(image)
-print(features.shape) # 输出: torch.Size([120000, 128])
-end = time.time()
-
-# # 输出结果
-print(f"函数执行时间：{end - start:.6f}秒")
+svo.insert(voxels.cpu().int(),colors.cpu().int())
+voxels, children, features, pcd_xyz, pcd_color = svo.get_centres_and_children()
+print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+print("\033[0;33;40m",'children',children.shape, "\033[0m")
+print("\033[0;33;40m",'features',features.shape, "\033[0m")
+print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
+print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")

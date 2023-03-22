@@ -17,10 +17,13 @@ Octree::Octree()
 {
 }
 
-Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts)
+Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, int64_t max_num)
 {
+    std::cout << "八叉树初始化成功！！ "   << std::endl;
     Octant::next_index_ = 0;
-    init(grid_dim, feat_dim, voxel_size);
+    MAX_POINTS_PER_LEAF = max_num;
+    std::cout << "MAX_POINTS_PER_LEAF000: " << MAX_POINTS_PER_LEAF<< std::endl;
+    init(grid_dim, feat_dim, voxel_size,max_num);
     for (auto &pt : all_pts)
     {
         insert(pt,pt);
@@ -31,8 +34,10 @@ Octree::~Octree()
 {
 }
 
-void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size)
+void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t max_num)
 {
+    MAX_POINTS_PER_LEAF = max_num;
+    // std::cout << "MAX_POINTS_PER_LEAF0: " << MAX_POINTS_PER_LEAF<< std::endl;
     size_ = grid_dim;
     feat_dim_ = feat_dim;
     voxel_size_ = voxel_size;
@@ -42,83 +47,24 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size)
     root_->side_ = size_;
     // root_->depth_ = 0;
     root_->is_leaf_ = false;
+    // MAX_POINTS_PER_LEAF = max_num;
 
     // feats_allocated_ = 0;
     // auto options = torch::TensorOptions().requires_grad(true);
     // feats_array_ = torch::randn({MAX_NUM_VOXELS, feat_dim}, options) * 0.01;
 }
 
-// void Octree::insert(torch::Tensor pts)
-// {
-    // // temporal solution
-    // all_pts.push_back(pts);
 
-    // if (root_ == nullptr)
-    // {
-    //     std::cout << "Octree not initialized!" << std::endl;
-    // }
-
-    // auto points = pts.accessor<int, 2>();
-    // if (points.size(1) != 3)
-    // {
-    //     std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
-    //     return;
-    // }
-
-    // for (int i = 0; i < points.size(0); ++i)
-    // {
-    //     for (int j = 0; j < 8; ++j)
-    //     {
-            // int x = points[i][0] + incr_x[j];
-            // int y = points[i][1] + incr_y[j];
-            // int z = points[i][2] + incr_z[j];
-            // uint64_t key = encode(x, y, z);
-
-            // all_keys.insert(key);
-
-            // const unsigned int shift = MAX_BITS - max_level_ - 1;
-
-            // auto n = root_;
-            // unsigned edge = size_ / 2;
-            // for (int d = 1; d <= max_level_; edge /= 2, ++d)
-            // {
-            //     const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
-            //     // std::cout << "Level: " << d << " ChildID: " << childid << std::endl;
-                // auto tmp = n->child(childid);
-                // if (!tmp)
-                // {
-                //     const uint64_t code = key & MASK[d + shift];
-                //     const bool is_leaf = (d == max_level_);
-                //     // tmp = std::make_shared<Octant>();
-                //     tmp = new Octant();
-                //     tmp->code_ = code;
-                //     tmp->side_ = edge;
-                //     tmp->is_leaf_ = is_leaf;
-                //     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
-
-                //     n->children_mask_ = n->children_mask_ | (1 << childid);
-                //     n->child(childid) = tmp;
-                // }
-                // else
-                // {
-                //     if (tmp->type_ == FEATURE && j == 0)
-                //         tmp->type_ = SURFACE;
-                // }
-//                 n = tmp;
-//             }
-//         }
-//     }
-// }
-
-void Octree::insert(torch::Tensor pts, torch::Tensor color )
+void Octree::insert(torch::Tensor pts, torch::Tensor color)
 {
     // temporal solution
     all_pts.push_back(pts);
-
+    all_colors.push_back(color);
     if (root_ == nullptr)
     {
         std::cout << "Octree not initialized!" << std::endl;
     }
+    // std::cout << "MAX_POINTS_PER_LEAF1: " << MAX_POINTS_PER_LEAF<< std::endl;
 
     auto points = pts.accessor<int, 2>();
     auto colors = color.accessor<int, 2>();
@@ -127,6 +73,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color )
         std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
         return;
     }
+
 
     for (int i = 0; i < points.size(0); ++i)
     {
@@ -149,9 +96,11 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color )
                 const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
                 // std::cout << "Level: " << d << " ChildID: " << childid << std::endl;
                 auto tmp = n->child(childid);
+                // std::cout << "Level: " << d << " ChildID: " << childid << "tmp: " << tmp << std::endl;
+                // std::cout << "tmp" << tmp << std::endl;
                 if (!tmp)
                 {
-                    // 新的点在现有八叉树中，判断是否在最底层叶子节点
+                    // 新的点不在现有八叉树中，创建新节点
                     const uint64_t code = key & MASK[d + shift];
                     const bool is_leaf = (d == max_level_);
                     // tmp = std::make_shared<Octant>();
@@ -161,8 +110,15 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color )
                     tmp->is_leaf_ = is_leaf;
                     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
                     if (is_leaf) {
-                        tmp->point_data_xyz= encode(points[i][0], points[i][1], points[i][2]);  // 添加点云索引
-                        tmp->point_data_color= encode(colors[i][0], colors[i][1], colors[i][2]);  // 添加点云索引
+                        if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
+                            // std::cout << "创建新节点"<< std::endl;
+                            // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
+                            uint64_t xyz = encode(points[i][0], points[i][1], points[i][2]);
+                            uint64_t color = encode(points[i][0], points[i][1], points[i][2]);
+                            tmp->point_data_xyz.push_back(xyz);  
+                            tmp->point_data_color.push_back(color);  
+                        }
+ 
                     }
 
                     n->children_mask_ = n->children_mask_ | (1 << childid);
@@ -170,13 +126,17 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color )
                 }
                 else
                 {   
-                    // 新的点没在现有八叉树中，则创建子节点
                     if (tmp->type_ == FEATURE && j == 0)
                         tmp->type_ = SURFACE;
 
                     if (tmp->is_leaf_) {
-                        tmp->point_data_xyz= encode(points[i][0], points[i][1], points[i][2]); // 添加点云索引
-                        tmp->point_data_color= encode(colors[i][0], colors[i][1], colors[i][2]);  // 添加点云索引
+                         if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
+                            // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
+                            uint64_t xyz = encode(points[i][0], points[i][1], points[i][2]);
+                            uint64_t color = encode(points[i][0], points[i][1], points[i][2]);
+                            tmp->point_data_xyz.push_back(xyz);  
+                            tmp->point_data_color.push_back(color);  
+                            }           
                         }
                 }
                 n = tmp;
@@ -184,8 +144,6 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color )
         }
     }
 }
-
-
 
 
 double Octree::try_insert(torch::Tensor pts)
@@ -375,13 +333,15 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     auto leaf_count = node_count.second;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
-    auto all_pointclouds_xyz = torch::ones({total_count, 4}, dtype(torch::kFloat32));
-    auto all_pointclouds_colors = torch::ones({total_count, 3}, dtype(torch::kFloat32));
+    auto all_pointclouds_xyz = torch::ones({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
+    auto all_pointclouds_colors = torch::ones({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
     auto all_children = -torch::ones({total_count, 8}, dtype(torch::kFloat32));
     auto all_features = -torch::ones({total_count, 8}, dtype(torch::kInt32));
-
-
-
+    
+    // std::cout << "all_pointclouds_xyz" << all_pointclouds_xyz<< std::endl;
+    // std::cout << "all_pointclouds_colors" << all_pointclouds_colors<< std::endl;
+    // std::cout << "MAX_POINTS_PER_LEAF2: " << MAX_POINTS_PER_LEAF<< std::endl;
+    
     std::queue<Octant *> all_nodes;
     all_nodes.push(root_);
 
@@ -391,21 +351,32 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         all_nodes.pop();
 
         auto xyz = decode(node_ptr->code_);
-        auto pc_xyz = decode(node_ptr->point_data_xyz);
-        auto pc_color = decode(node_ptr->point_data_color);
-
-
         std::vector<float> coords = {xyz[0], xyz[1], xyz[2], float(node_ptr->side_)};
         auto voxel = torch::from_blob(coords.data(), {4}, dtype(torch::kFloat32));
         all_voxels[node_ptr->index_] = voxel;
-        
-        std::vector<float> coords_xyz = {pc_xyz[0], pc_xyz[1], pc_xyz[2], float(node_ptr->side_)};
-        auto pc_position = torch::from_blob(coords_xyz.data(), {4}, dtype(torch::kFloat32));
+
+        // std::cout << "MAX_POINTS_PER_LEAF: " << MAX_POINTS_PER_LEAF<< std::endl;
+
+        std::vector<std::array<float, 3>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
+        std::vector<std::array<float, 3>> color_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
+        for (int i = 0; i < node_ptr->point_data_xyz.size(); ++i) {
+            auto xyz_ = decode(node_ptr->point_data_xyz[i]);
+            xyz_array[i][0]=xyz_[0];
+            xyz_array[i][1]=xyz_[1];
+            xyz_array[i][2]=xyz_[2];
+            auto color_ = decode(node_ptr->point_data_color[i]);
+            color_array[i][0]=color_[0];
+            color_array[i][1]=color_[1];
+            color_array[i][2]=color_[2];
+        }
+        // std::cout << "xyz_array" << xyz_array<< std::endl;
+
+        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
         all_pointclouds_xyz[node_ptr->index_] = pc_position;
 
-        std::vector<float> coords_color = {pc_color[0], pc_color[1], pc_color[2]};
-        auto pc_rgb = torch::from_blob(coords_color.data(), {3}, dtype(torch::kFloat32));
+        auto pc_rgb = torch::from_blob(color_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
         all_pointclouds_colors[node_ptr->index_] = pc_rgb;
+
 
         if (node_ptr->type_ == SURFACE)
         {

@@ -69,12 +69,13 @@ class Mapping:
             (num_embeddings, self.embed_dim),
             requires_grad=True, dtype=torch.float32,
             device=torch.device("cuda"))
+        print("\033[0;33;40m",'self.embeddings',self.embeddings.shape, "\033[0m")
         torch.nn.init.normal_(self.embeddings, std=0.01)
         self.embed_optim = torch.optim.Adam([self.embeddings], lr=5e-3)
         self.model_optim = torch.optim.Adam(self.decoder.parameters(), lr=5e-3)
 
         self.svo = torch.classes.svo.Octree()
-        self.svo.init(256, embed_dim, self.voxel_size)
+        self.svo.init(256, embed_dim, self.voxel_size, 8)
         
         self.frame_poses = []
         self.depth_maps = []
@@ -231,17 +232,20 @@ class Mapping:
 
     @torch.enable_grad()
     def update_grid_pc_features(self):
-        voxels, children, features, pcd_xyz,pcd_color = self.svo.get_centres_and_children()
-        # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
-        # print("\033[0;33;40m",'children',children.shape, "\033[0m")
-        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
-        # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
-        # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
-        pc_xyz = (pcd_xyz[:, :3] + pcd_xyz[:, -1:] / 2) * self.voxel_size
+        voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
+        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        print("\033[0;33;40m",'children',children.shape, "\033[0m")
+        print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
+        print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
+        pc_xyz = (pcd_xyz[:,:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
-        pc_features = self.points_encoder(pcd_color)
+        # pc_features = self.points_encoder(pcd_color)
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        
+        pc_xyz = torch.rand(10, 3)
+        pc_features = torch.rand(10, 3)
         
         centres = centres.cuda().float()
         children = children.cuda().int()

@@ -36,7 +36,10 @@ def masked_scatter_ones(mask, x):
         mask.unsqueeze(-1).expand(B, K, x.size(-1)), x
     )
 
-
+# 这段代码是一个函数，用于进行三线性插值，其中p是一个3D坐标，表示当前点的位置，
+# q是一个3D坐标，表示当前点周围的8个点的位置，point_feats是一个特征向量，
+# 表示当前点周围的8个点的特征。这段代码的主要作用是计算当前点的特征，
+# 以便进行点云分割等任务。
 @torch.enable_grad()
 def trilinear_interp(p, q, point_feats):
     weights = (p * q + (1 - p) * (1 - q)).prod(dim=-1, keepdim=True)
@@ -46,7 +49,12 @@ def trilinear_interp(p, q, point_feats):
     point_feats = (weights * point_feats).sum(1)
     return point_feats
 
-
+# 这段代码是一个函数，用于计算当前点周围的8个点的位置，其中point_xyz是一个3D坐标，
+# 表示当前点的位置，
+# quarter_voxel是一个标量，表示体素的大小，
+# offset_only是一个布尔值，表示是否只计算偏移量，
+# bits是一个标量，表示偏移量的精度。
+# 这段代码的主要作用是将当前点周围的8个点的位置转换为体素坐标，以便进行三线性插值。
 def offset_points(point_xyz, quarter_voxel=1, offset_only=False, bits=2):
     c = torch.arange(1, 2 * bits, 2, device=point_xyz.device)
     ox, oy, oz = torch.meshgrid([c, c, c], indexing='ij')
@@ -65,6 +73,8 @@ def get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size):
     # tri-linear interpolation
     p = ((sampled_xyz - point_xyz) / voxel_size + 0.5).unsqueeze(1)
     q = offset_points(p, 0.5, offset_only=True).unsqueeze(0) + 0.5
+    print("\033[0;33;40m",'p',p.shape, "\033[0m")
+    print("\033[0;33;40m",'q',q.shape, "\033[0m")
     feats = trilinear_interp(p, q, point_feats).float()
     # if self.args.local_coord:
     # feats = torch.cat([(p-.5).squeeze(1).float(), feats], dim=-1)
@@ -79,6 +89,8 @@ def get_features_vox(samples, map_states, voxel_size):
     values = map_states["voxel_vertex_emb"].cuda()
     pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
     pointclouds_feature = map_states["pointclouds_feature"].cuda()
+    print("\033[0;33;40m",'----------------', "\033[0m")
+    print("\033[0;33;40m",'values',values.shape, "\033[0m")
 
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
@@ -88,12 +100,12 @@ def get_features_vox(samples, map_states, voxel_size):
     point_xyz = F.embedding(sampled_idx, point_xyz)
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
-    print("\033[0;33;40m",'----------------', "\033[0m")
     print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
     print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
     print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     
     feats = get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size)
+    print("\033[0;33;40m",'feats',feats.shape, "\033[0m")
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
 
@@ -117,9 +129,9 @@ def get_features_pcd(samples, map_states, voxel_size):
     pointclouds_xyz = F.embedding(sampled_idx, pointclouds_xyz)
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), pointclouds_feature).view(pointclouds_xyz.size(0), -1)
-    print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     
     # feats = get_embeddings_vox(sampled_xyz, pointclouds_xyz, point_feats, voxel_size)
     # inputs = {"dists": sampled_dis, "emb": feats}
@@ -354,7 +366,7 @@ def render_rays(
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
         chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
-        chunk_inputs_color = get_features_pcd(chunk_samples, map_states, voxel_size)
+        # chunk_inputs_color = get_features_pcd(chunk_samples, map_states, voxel_size)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         # print("\033[0;33;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
