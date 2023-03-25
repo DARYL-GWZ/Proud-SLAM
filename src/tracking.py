@@ -102,7 +102,7 @@ class Tracking:
             pass
 
     def do_tracking(self, share_data, current_frame, kf_buffer):
-        print("\033[0;33;40m",'share_data',share_data, "\033[0m")
+        # print("\033[0;33;40m",'share_data',share_data, "\033[0m")
         decoder = share_data.decoder.cuda()
         # print("\033[0;33;40m",'xxxxxxxxxxx3', "\033[0m")
         map_states = share_data.states

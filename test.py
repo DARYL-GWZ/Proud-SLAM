@@ -147,27 +147,27 @@ import torch.nn as nn
 import torchvision.models as models
 import time
 
-class PointsResNet(nn.Module):
-    def __init__(self, feature_n):
-        super(PointsResNet, self).__init__()
-        resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-        modules = list(resnet.children())[:-1]
-        self.resnet = nn.Sequential(*modules)
-        self.fc = nn.Linear(resnet.fc.in_features, feature_n)
+# class PointsResNet(nn.Module):
+#     def __init__(self, feature_n):
+#         super(PointsResNet, self).__init__()
+#         resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+#         modules = list(resnet.children())[:-1]
+#         self.resnet = nn.Sequential(*modules)
+#         self.fc = nn.Linear(resnet.fc.in_features, feature_n)
 
-    def forward(self, x1):
-        # print("\033[0;33;40m",'x1',x1.shape, "\033[0m")
-        x = x1.reshape(-1, 3, 1, 1)
-        # print("\033[0;33;40m",'x2',x.shape, "\033[0m")
-        x = self.resnet(x)
-        # print("\033[0;33;40m",'x3',x.shape, "\033[0m")
-        x = x.view(-1, 512)
-        # print("\033[0;33;40m",'x4',x.shape, "\033[0m")
-        x = self.fc(x)
-        # print("\033[0;33;40m",'x5',x.shape, "\033[0m")
-        x= x.reshape(-1, x1.shape[1], x.shape[1])
-        # print("\033[0;33;40m",'x6',x.shape, "\033[0m")
-        return x
+    # def forward(self, x1):
+    #     # print("\033[0;33;40m",'x1',x1.shape, "\033[0m")
+    #     x = x1.reshape(-1, 3, 1, 1)
+    #     # print("\033[0;33;40m",'x2',x.shape, "\033[0m")
+    #     x = self.resnet(x)
+        # # print("\033[0;33;40m",'x3',x.shape, "\033[0m")
+        # x = x.view(-1, 512)
+        # # print("\033[0;33;40m",'x4',x.shape, "\033[0m")
+        # x = self.fc(x)
+        # # print("\033[0;33;40m",'x5',x.shape, "\033[0m")
+        # x= x.reshape(-1, x1.shape[1], x.shape[1])
+        # # print("\033[0;33;40m",'x6',x.shape, "\033[0m")
+        # return x
 
 
 # model = PointsResNet(64)
@@ -222,3 +222,95 @@ class PointsResNet(nn.Module):
 # print("\033[0;33;40m",'features',features.shape, "\033[0m")
 # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
 # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
+
+
+# ---------------------get_embeddings_pcd text----------------
+# def get_sampled_feature(query_xyz, query_fea, samples_xyz):
+#     d = torch.Tensor([])
+#     fea = torch.zeros((1, query_fea.shape[2]))
+#     for i in range(query_xyz.shape[0]):
+#         dis = torch.norm(samples_xyz - query_xyz[i], dim=1)
+#         d = torch.cat((d, 1 / dis))
+#     all_dis = torch.sum(d)
+#     for j in range(query_xyz.shape[0]):
+#         feature = torch.mul((d[j] / all_dis), query_fea[j]).reshape(1, query_fea.shape[1])
+#         fea = torch.add(fea, feature)
+#     return fea
+
+# sample 表示采样点的位置数据
+# positions 表示点云位置数据
+# features 表示点云特征数据
+# 函数首先计算每个采样点和每个点云的距离，然后基于距离计算每个点云对采样点的权重
+# 最后将权重与特征值相乘并求和，得到采样点的特征
+# def compute_sample_features(sample, positions, features):
+#     """
+#     Computes features for the given sample points based on positions and features of the point cloud.
+#     :param sample: Tensor of shape (M, 3) representing the coordinates of M sample points.
+#     :param positions: Tensor of shape (M, N, 3) representing the coordinates of N points in M voxels.
+#     :param features: Tensor of shape (M, N, 64) representing the features of N points in M voxels.
+#     :return: Tensor of shape (M, 64) representing the features of M sample points.
+#     """
+#     M, N = positions.shape[:2]
+
+#     # Compute distances between sample points and voxel points
+    
+#     print("\033[0;33;40m",'sample.unsqueeze(1) - positions',(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1)).shape, "\033[0m")
+#     distances = torch.sqrt(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1))  # Shape: (M, N)
+    
+#     print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
+#     # Compute weights based on distances.
+#     weights = torch.softmax(-distances, dim=-1)  # Shape: (M, N)
+#     print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
+#     print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
+#     print("\033[0;33;40m",'features',features.shape, "\033[0m")
+#     # Compute weighted average of features.
+#     sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
+
+#     return sample_features
+
+# start = time.time()
+# samples_xyz = torch.rand(10000, 3)
+# query_xyz = torch.rand(10000,8, 3)
+# query_fea = torch.rand(10000,8, 128)
+# features = compute_sample_features(samples_xyz,query_xyz, query_fea)
+# end = time.time()
+# print(f"函数执行时间：{end - start:.6f}秒")
+# print(features.shape) # 输出: torch.Size([120000, 128])
+
+
+
+# dis = torch.tensor([[1,8,3,2,4,5,6,7],[1,8,3,2,4,5,6,7],[1,8,3,2,4,5,6,7]]).float()
+# print("\033[0;33;40m",'dis',dis, "\033[0m")
+# weights = torch.softmax(-dis, dim=-1)
+# print("\033[0;33;40m",'weights',weights[0], "\033[0m")
+
+# ============== pcd feature cal test=============
+import torch
+import torch.nn.functional as F
+pointclouds_xyz = torch.rand(2272, 8, 3)
+sampled_idx = torch.rand(10000).long()
+point_feats = torch.rand(10000, 3)
+pointclouds_feature = torch.rand(2272, 8, 64)
+#  values torch.Size([20000, 16]) 
+#  原始pointclouds_xyz torch.Size([2272, 8, 3]) 
+#  point_feats torch.Size([2272, 8]) 
+#  pointclouds_feature torch.Size([2272, 8, 64]) 
+
+
+xyz_list = []
+feats_list = []
+for i in range(pointclouds_xyz.shape[1]):
+    per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
+    print("\033[0;33;40m",'per_pcd_xyz',per_pcd_xyz.shape, "\033[0m")
+    per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
+                                # .long(), pointclouds_feature[:,i,:]).view(pointclouds_xyz[:,i,:].size(0), -1)
+    print("\033[0;33;40m",'per_pcd_feats',per_pcd_feats.shape, "\033[0m")
+    xyz_list.append(per_pcd_xyz)
+    feats_list.append(per_pcd_feats)
+    
+pointclouds_xyz = torch.stack(xyz_list, dim=1)
+pointclouds_feats = torch.stack(feats_list, dim=1)
+print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
+print("\033[0;33;40m",'pointclouds_feats',pointclouds_feats.shape, "\033[0m")
+
+

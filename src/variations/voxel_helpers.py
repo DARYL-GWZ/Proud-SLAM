@@ -289,6 +289,7 @@ class InverseCDFRaySampling(Function):
 
         # pre-generate noise
         max_steps = steps.ceil().long().max() + P
+        # print("\033[0;33;40m",'max_steps', max_steps.shape,"\033[0m")
         noise = min_depth.new_zeros(*min_depth.size()[:-1], max_steps)
         if deterministic:
             noise += 0.5

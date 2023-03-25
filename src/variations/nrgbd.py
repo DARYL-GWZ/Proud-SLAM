@@ -139,7 +139,7 @@ class Decoder(nn.Module):
 
     def forward(self, inputs):
         outputs = self.get_values(inputs['emb'])
-
+        # print("\033[0;33;40m",'输出sdf和colour', "\033[0m")
         return {
             'color': outputs[:, :3],
             'sdf': outputs[:, 3]

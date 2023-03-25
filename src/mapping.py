@@ -80,7 +80,7 @@ class Mapping:
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
-        self.points_encoder = PointsResNet(64)
+        self.points_encoder = PointsResNet(16)
         self.resnet_optim = torch.optim.Adam(self.points_encoder.parameters(), lr=5e-3) 
 
         
@@ -214,7 +214,7 @@ class Mapping:
         self.current_keyframe = frame
         self.keyframe_graph += [frame]
         # self.update_grid_features()
-
+    
     def create_voxels_pointcloud(self, frame):
         points = frame.get_points().cuda()
         colors = frame.get_color().cuda()

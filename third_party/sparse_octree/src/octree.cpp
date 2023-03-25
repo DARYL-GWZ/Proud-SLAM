@@ -113,8 +113,8 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
                         if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
                             // std::cout << "创建新节点"<< std::endl;
                             // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
-                            uint64_t xyz = encode(points[i][0], points[i][1], points[i][2]);
-                            uint64_t color = encode(points[i][0], points[i][1], points[i][2]);
+                            uint64_t xyz = encode(points[i][0], points[i][1], points[i][2])& MASK[d + shift] ;
+                            uint64_t color = encode(points[i][0], points[i][1], points[i][2]) & MASK[d + shift];
                             tmp->point_data_xyz.push_back(xyz);  
                             tmp->point_data_color.push_back(color);  
                         }
@@ -132,8 +132,8 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
                     if (tmp->is_leaf_) {
                          if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
                             // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
-                            uint64_t xyz = encode(points[i][0], points[i][1], points[i][2]);
-                            uint64_t color = encode(points[i][0], points[i][1], points[i][2]);
+                            uint64_t xyz = encode(points[i][0], points[i][1], points[i][2])& MASK[d + shift];
+                            uint64_t color = encode(points[i][0], points[i][1], points[i][2])& MASK[d + shift];
                             tmp->point_data_xyz.push_back(xyz);  
                             tmp->point_data_color.push_back(color);  
                             }           
