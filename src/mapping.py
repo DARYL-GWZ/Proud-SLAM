@@ -227,11 +227,11 @@ class Mapping:
         
         self.svo.insert(voxels.cpu().int(),colors.cpu().int())
 
-        self.update_grid_pc_features()
+        self.update_grid_pcd_features()
 
 
     @torch.enable_grad()
-    def update_grid_pc_features(self):
+    def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
