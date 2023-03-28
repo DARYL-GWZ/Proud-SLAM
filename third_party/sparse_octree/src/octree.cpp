@@ -114,7 +114,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
                             // std::cout << "创建新节点"<< std::endl;
                             // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
                             uint64_t xyz = encode(points[i][0], points[i][1], points[i][2])& MASK[d + shift] ;
-                            uint64_t color = encode(points[i][0], points[i][1], points[i][2]) & MASK[d + shift];
+                            uint64_t color = encode(colors[i][0], colors[i][1], colors[i][2]) & MASK[d + shift];
                             tmp->point_data_xyz.push_back(xyz);  
                             tmp->point_data_color.push_back(color);  
                         }
@@ -133,7 +133,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
                          if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
                             // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
                             uint64_t xyz = encode(points[i][0], points[i][1], points[i][2])& MASK[d + shift];
-                            uint64_t color = encode(points[i][0], points[i][1], points[i][2])& MASK[d + shift];
+                            uint64_t color = encode(colors[i][0], colors[i][1], colors[i][2])& MASK[d + shift];
                             tmp->point_data_xyz.push_back(xyz);  
                             tmp->point_data_color.push_back(color);  
                             }           
@@ -359,8 +359,9 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 
         std::vector<std::array<float, 3>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
         std::vector<std::array<float, 3>> color_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
+        auto xyz_ = decode(node_ptr->code_);
         for (int i = 0; i < node_ptr->point_data_xyz.size(); ++i) {
-            auto xyz_ = decode(node_ptr->point_data_xyz[i]);
+            // auto xyz_ = decode(node_ptr->point_data_xyz[i]);
             xyz_array[i][0]=xyz_[0];
             xyz_array[i][1]=xyz_[1];
             xyz_array[i][2]=xyz_[2];

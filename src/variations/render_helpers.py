@@ -87,24 +87,24 @@ def get_features_vox(samples, map_states, voxel_size):
     point_feats = map_states["voxel_vertex_idx"].cuda()
     point_xyz = map_states["voxel_center_xyz"].cuda()
     values = map_states["voxel_vertex_emb"].cuda()
-    print("\033[0;33;40m",'----------------', "\033[0m")
-    print("\033[0;33;40m",'values',values.shape, "\033[0m")
-    print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'----------------', "\033[0m")
+    # print("\033[0;33;40m",'values',values.shape, "\033[0m")
+    # print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
     
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
     sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
     sampled_dis = samples["sampled_point_distance"]
-    print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
-    print("\033[0;33;40m",'sampled_idx',sampled_idx[0], "\033[0m")
+    # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_idx',sampled_idx[0], "\033[0m")
     point_xyz = F.embedding(sampled_idx, point_xyz)
-    print("\033[0;33;40m",'处理后point_xyz',point_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'处理后point_xyz',point_xyz.shape, "\033[0m")
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
     # print("\033[0;33;40m",'F.embedding(sampled_idx, point_feats)',F.embedding(sampled_idx, point_feats).shape, "\033[0m")
-    print("\033[0;33;40m",'处理后point_feats',point_feats.shape, "\033[0m")
-    print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'处理后point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
     
     feats = get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size)
     # print("\033[0;33;40m",'feats',feats.shape, "\033[0m")

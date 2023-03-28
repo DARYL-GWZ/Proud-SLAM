@@ -314,3 +314,6 @@ print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
 print("\033[0;33;40m",'pointclouds_feats',pointclouds_feats.shape, "\033[0m")
 
 
+tensor = torch.randn(3, 4)
+with open('tensor.txt', 'w') as file:
+    file.write(str(tensor))
