@@ -43,7 +43,7 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t
     voxel_size_ = voxel_size;
     max_level_ = log2(size_);
     // root_ = std::make_shared<Octant>();
-    root_ = new Octant();
+
     root_->side_ = size_;
     // root_->depth_ = 0;
     root_->is_leaf_ = false;
@@ -73,7 +73,11 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
         std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
         return;
     }
-
+    if (colors.size(1) != 3)
+    {
+        std::cout << "Colors dimensions mismatch: inputs are " << colors.size(1) << " expect 3" << std::endl;
+        return;
+    }
 
     for (int i = 0; i < points.size(0); ++i)
     {
@@ -118,7 +122,6 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
                             tmp->point_data_xyz.push_back(xyz);  
                             tmp->point_data_color.push_back(color);  
                         }
- 
                     }
 
                     n->children_mask_ = n->children_mask_ | (1 << childid);
