@@ -4,3 +4,7 @@ build/
 dist/
 logs/
 .vscode/
+points.txt
+colors.txt
+pcd_xyz.txt
+centres.txt

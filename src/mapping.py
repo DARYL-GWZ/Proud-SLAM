@@ -76,6 +76,7 @@ class Mapping:
 
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size, 8)
+        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
         
         self.frame_poses = []
         self.depth_maps = []
@@ -221,10 +222,14 @@ class Mapping:
         pose = frame.get_pose().cuda()
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
-        # print("\033[0;33;40m",'colors',colors, "\033[0m")
-        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+        print("\033[0;33;40m",'points',points.shape, "\033[0m")
         # print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
-
+        
+        # print("\033[0;33;40m",'===============', "\033[0m")
+        # np.savetxt('colors.txt', colors.cpu().numpy())
+        # np.savetxt('points.txt', points.cpu().numpy())
+        # print("\033[0;33;40m",'----------------', "\033[0m")
         self.svo.insert(voxels.cpu().int(),colors.cpu().int())
 
         self.update_grid_pcd_features()
@@ -233,6 +238,7 @@ class Mapping:
     @torch.enable_grad()
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
+
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
@@ -245,6 +251,8 @@ class Mapping:
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
+        # pcd_xyz = pcd_xyz.cuda().float()
+        
         map_states = {}
         map_states["voxel_vertex_idx"] = features.cuda()
         map_states["voxel_center_xyz"] = centres
@@ -253,8 +261,12 @@ class Mapping:
         map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
         map_states["pointclouds_feature"] = pcd_features
-        # print("\033[0;33;40m",'pcd_xyz',pcd_xyz, "\033[0m")
-        # print("\033[0;33;40m",'centres',centres, "\033[0m")
+        print("\033[0;33;40m",'===============', "\033[0m")
+        np.savetxt('pcd_xyz.txt', pcd_xyz[:,0,:].numpy())
+        np.savetxt('centres.txt', centres.cpu().numpy())
+        print("\033[0;33;40m",'----------------', "\033[0m")
+        print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
+        print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
         # print("\033[0;33;40m",'pcd_color',pcd_color, "\033[0m")
         
         # with open('pcd_xyz.txt', 'w') as file:
@@ -265,13 +277,13 @@ class Mapping:
         #         for row in centres:
         #             file.write(' '.join([str(elem) for elem in row]))
         #             file.write('\n')
-        # print("\033[0;33;40m",'===============', "\033[0m")
+
         # with open('pcd_xyz.txt', 'w') as file:
         #     file.write(str(pcd_xyz))
+        # with open('centres.txt', 'w') as file:
+        #     file.write(str(centres))
         # with open('pcd_color.txt', 'w') as file:
         #     file.write(str(pcd_color))
-        # with open('pcd_features.txt', 'w') as file:
-        #     file.write(str(centres))
         # with open('centres.txt', 'w') as file:
         #     file.write(str(pcd_features))
         self.map_states = map_states
