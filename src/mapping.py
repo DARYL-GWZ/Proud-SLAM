@@ -251,7 +251,9 @@ class Mapping:
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
-        # pcd_xyz = pcd_xyz.cuda().float()
+        pcd_xyz = pcd_xyz.cuda().float()
+        pcd_features = pcd_features.cuda().float()
+        
         
         map_states = {}
         map_states["voxel_vertex_idx"] = features.cuda()
