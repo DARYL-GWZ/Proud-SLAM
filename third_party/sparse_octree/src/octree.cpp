@@ -19,10 +19,10 @@ Octree::Octree()
 
 Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, int64_t max_num)
 {
-    std::cout << "八叉树初始化成功！！ "   << std::endl;
+    std::cout << "octree initialization is OK "   << std::endl;
     Octant::next_index_ = 0;
     MAX_POINTS_PER_LEAF = max_num;
-    std::cout << "MAX_POINTS_PER_LEAF000: " << MAX_POINTS_PER_LEAF<< std::endl;
+    // std::cout << "MAX_POINTS_PER_LEAF000: " << MAX_POINTS_PER_LEAF<< std::endl;
     init(grid_dim, feat_dim, voxel_size,max_num);
     for (auto &pt : all_pts)
     {
@@ -64,7 +64,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color)
     {
         std::cout << "Octree not initialized!" << std::endl;
     }
-    std::cout << "MAX_POINTS_PER_LEAF1: " << MAX_POINTS_PER_LEAF<< std::endl;
+    // std::cout << "MAX_POINTS_PER_LEAF1: " << MAX_POINTS_PER_LEAF<< std::endl;
 
     auto points = pts.accessor<int, 2>();
     auto colors = color.accessor<int, 2>();
@@ -347,9 +347,6 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     std::queue<Octant *> all_nodes;
     all_nodes.push(root_);
     int flag1 = 1;
-    int flag2 = 1;
-    int flag3 = 1;
-    int flag4 = 1;
     int flag5 = 1;
 
     while (!all_nodes.empty())
@@ -361,23 +358,15 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         std::vector<float> coords = {xyz[0], xyz[1], xyz[2], float(node_ptr->side_)};
         auto voxel = torch::from_blob(coords.data(), {4}, dtype(torch::kFloat32));
         all_voxels[node_ptr->index_] = voxel;
-        if(flag1 < 3){
-                std::cout << "node_ptr->side_1: " << node_ptr->side_<< "  flag1: " << flag1 << std::endl;
-                flag1 ++;
-            }
+        // if(flag1 < 3){
+        //         std::cout << "node_ptr->side_1: " << node_ptr->side_<< "  flag1: " << flag1 << std::endl;
+        //         flag1 ++;
+        //     }
         // std::cout << "MAX_POINTS_PER_LEAF: " << MAX_POINTS_PER_LEAF<< std::endl;
 
         std::vector<std::array<float, 4>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0,0});
         std::vector<std::array<float, 3>> color_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
-        if(flag2 < 3){
-                std::cout << "node_ptr->side_2: " << node_ptr->side_<< "  flag2: " << flag2 << std::endl;
-                flag2 ++;
-            }
         
-        if(flag3 < 3){
-                std::cout << "node_ptr->side_3: " << node_ptr->side_<< "  flag3: " << flag3 << std::endl;
-                flag3 ++;
-            }
             // || node_ptr->side_ == size_
         if (node_ptr->side_ == size_){
             auto xyz_ = decode(node_ptr->code_);
@@ -386,24 +375,27 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
                     xyz_array[i][1]=xyz_[1];
                     xyz_array[i][2]=xyz_[2];
                     xyz_array[i][3]=float(node_ptr->side_);
-                if(flag4 < 5){
-                    std::cout << "node_ptr->side_4: " << node_ptr->side_<< "  flag4: " << flag4 << std::endl;
-                    flag4 ++;
-                }
+                // if(flag4 < 5){
+                //     std::cout << "node_ptr->side_4: " << node_ptr->side_<< "  flag4: " << flag4 << std::endl;
+                //     flag4 ++;
+                // }
             }
         }
 
         for (int i = 0; i < node_ptr->point_data_xyz.size(); i++) {
             auto xyz_ = decode(node_ptr->point_data_xyz[i]);
+            auto color_ = decode(node_ptr->point_data_color[i]);
             xyz_array[i][0]=xyz_[0];
             xyz_array[i][1]=xyz_[1];
             xyz_array[i][2]=xyz_[2];
             xyz_array[i][3]=float(node_ptr->side_);
-
-            if(flag5 < 5){
-                std::cout << "node_ptr->side_5: " << node_ptr->side_<< "  flag5: " << flag5 << std::endl;
-                flag5 ++;
-            }
+            color_array[i][0]=color_[0];
+            color_array[i][1]=color_[1];
+            color_array[i][2]=color_[2];
+            // if(flag5 < 5){
+            //     std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
+            //     flag5 ++;
+            // }
         }
         // std::cout << "Finish"<< std::endl;
 

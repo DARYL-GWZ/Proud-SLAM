@@ -73,7 +73,7 @@ class RGBDFrame(nn.Module):
     @torch.no_grad()
     def get_color(self):
         # print("\033[0;33;40m",'self.rgb',self.rgb.shape, "\033[0m")
-        return self.rgb[self.depth > 0].reshape(-1, 3)
+        return self.rgb[self.depth > 0].reshape(-1, 3) 
 
     @torch.no_grad()
     def sample_rays(self, N_rays):

@@ -88,13 +88,11 @@ class Mapping:
     def spin(self, share_data,kf_buffer):
         # print("************mapping process started!******")
         print("\033[0;33;40m",'*****mapping process started!*****', "\033[0m")
-        # self.point_cloud = o3d.t.geometry.PointCloud()
         
         while True:
             # torch.cuda.empty_cache()
             if not kf_buffer.empty():
                 tracked_frame = kf_buffer.get()
-                # self.create_voxels(tracked_frame)
 
                 if not self.initialized:
                     if self.mesher is not None:
@@ -222,14 +220,16 @@ class Mapping:
         pose = frame.get_pose().cuda()
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
-        print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
-        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        colors = colors * 255
+        # print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         # print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
         
         # print("\033[0;33;40m",'===============', "\033[0m")
         # np.savetxt('colors.txt', colors.cpu().numpy())
         # np.savetxt('points.txt', points.cpu().numpy())
-        # print("\033[0;33;40m",'----------------', "\033[0m")
+        # np.savetxt('o_color.txt', o_color.cpu().numpy())
+
         self.svo.insert(voxels.cpu().int(),colors.cpu().int())
 
         self.update_grid_pcd_features()
@@ -261,31 +261,15 @@ class Mapping:
         map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
         map_states["pointclouds_feature"] = pcd_features
-        print("\033[0;33;40m",'===============', "\033[0m")
-        np.savetxt('pcd_xyz.txt', pcd_xyz[:,0,:].numpy())
-        np.savetxt('centres.txt', centres.cpu().numpy())
-        print("\033[0;33;40m",'----------------', "\033[0m")
+        # print("\033[0;33;40m",'===============', "\033[0m")
+        # np.savetxt('pcd_xyz.txt', pcd_xyz[:,0,:].numpy())
+        # np.savetxt('centres.txt', centres.cpu().numpy())
+        # np.savetxt('pcd_color.txt', pcd_color[:,0,:].cpu().numpy())
+        # print("\033[0;33;40m",'----------------', "\033[0m")
         print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
         print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
-        # print("\033[0;33;40m",'pcd_color',pcd_color, "\033[0m")
-        
-        # with open('pcd_xyz.txt', 'w') as file:
-        #         for row in pcd_xyz:
-        #             file.write(' '.join([str(elem) for elem in row]))
-        #             file.write('\n')
-        # with open('centres.txt', 'w') as file:
-        #         for row in centres:
-        #             file.write(' '.join([str(elem) for elem in row]))
-        #             file.write('\n')
+        print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
 
-        # with open('pcd_xyz.txt', 'w') as file:
-        #     file.write(str(pcd_xyz))
-        # with open('centres.txt', 'w') as file:
-        #     file.write(str(centres))
-        # with open('pcd_color.txt', 'w') as file:
-        #     file.write(str(pcd_color))
-        # with open('centres.txt', 'w') as file:
-        #     file.write(str(pcd_features))
         self.map_states = map_states
 
 

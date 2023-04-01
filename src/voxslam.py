@@ -26,13 +26,11 @@ class VoxSLAM:
         mp.set_start_method('spawn', force=True)
         # 将需要共享的类对象注册在类中
         BaseManager.register('ShareData', ShareData, ShareDataProxy)
-        BaseManager.register('SharedPointCloud', SharedPointCloud)
         # 实例化一个共享对象
         manager = BaseManager()
         # 运行这个类
         manager.start()
         self.share_data = manager.ShareData()
-        self.share_pc_data = manager.SharedPointCloud()
         
         # keyframe buffer  共享的buffer序列
         self.kf_buffer = mp.Queue(maxsize=1)
