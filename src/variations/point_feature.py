@@ -11,7 +11,8 @@ class PointsResNet(nn.Module):
         self.fc = nn.Linear(resnet.fc.in_features, feature_n)
 
     def forward(self, x1):
-        # print("\033[0;33;40m",'x1',x1.shape, "\033[0m")
+        # with torch.no_grad():
+            # print("\033[0;33;40m",'x1',x1.shape, "\033[0m")
         x = x1.reshape(-1, 3, 1, 1)
         # print("\033[0;33;40m",'x2',x.shape, "\033[0m")
         x = self.resnet(x)

@@ -426,6 +426,10 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
                 auto voxel = find_octant(vcoords);
                 if (voxel)
                     all_features.data_ptr<int>()[node_ptr->index_ * 8 + i] = voxel->index_;
+                // if(flag5 < 5){
+                //     std::cout << "voxel->index_ " << voxel->index_<< "  flag5: " << flag5 << std::endl;
+                //     flag5 ++;
+                // }
             }
         }
 

@@ -131,25 +131,36 @@ def get_features_pcd(samples, map_states):
     sampled_dis = samples["sampled_point_distance"]
     
     # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
-    xyz_list = []
-    feats_list = []
+    # xyz_list = []
+    # feats_list = []
     # print("1:{}".format(torch.cuda.memory_allocated(0)))
-    with torch.no_grad():
-        for i in range(pointclouds_xyz.shape[1]):
-            per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
-            per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
-            xyz_list.append(per_pcd_xyz)
-            feats_list.append(per_pcd_feats)
-        pointclouds_xyz = torch.stack(xyz_list, dim=1)
-        pointclouds_feats = torch.stack(feats_list, dim=1)
+
+    #     for i in range(pointclouds_xyz.shape[1]):
+    #         per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
+    #         per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
+        #     xyz_list.append(per_pcd_xyz)
+        #     feats_list.append(per_pcd_feats)
+        # pointclouds_xyz = torch.stack(xyz_list, dim=1)
+        # pointclouds_feats = torch.stack(feats_list, dim=1)
+        
+
+    # pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
+    # pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
+
+    # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
+    # pcd_feats_a = F.embedding(sampled_idx, point_feats)
+    # print("\033[0;33;40m",'pcd_feats_a',pcd_feats_a.shape, "\033[0m")
+    # pcd_feats = F.embedding(pcd_feats_a , pointclouds_feature.reshape(pointclouds_feature.shape[0],-1)).view(pcd_xyz.size(0), -1)
+    # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
+    
     # print("2:{}".format(torch.cuda.memory_allocated(0)))
     
     # pointclouds_xyz = torch.rand(sampled_idx.shape[0], 8, 3).cuda()
     # pointclouds_feats = torch.rand(sampled_idx.shape[0], 8, 16).cuda()
-    # print("\033[0;33;40m",'emb的point_xyz',pointclouds_xyz.shape, "\033[0m")
-    # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
     
-    feats = get_embeddings_pcd(sampled_xyz, pointclouds_xyz, pointclouds_feats)
+    feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
     # print("\033[0;33;40m",'feats',feats.shape, "\033[0m")
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
@@ -385,9 +396,9 @@ def render_rays(
             profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
-        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # with torch.no_grad():
-        # chunk_inputs = get_features_pcd(chunk_samples, map_states)
+        chunk_inputs = get_features_pcd(chunk_samples, map_states)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
@@ -478,6 +489,7 @@ def bundle_adjust_frames(
 ):
     # optimize_params = [{'params': embeddings, 'lr': learning_rate[0]}]
     optimizers = [embed_optim]
+    # optimizers = [model_optim]
     if model_optim is not None:
         # optimize_params += [{'params': sdf_network.parameters(),
         #                      'lr': learning_rate[0]}]
@@ -485,6 +497,8 @@ def bundle_adjust_frames(
         
     if resnet_optim is not None:
         optimizers += [resnet_optim]
+        # print("\033[0;33;40m",'resnet_optim intro success', "\033[0m")
+        
         
     # optimize_params=[]
     for keyframe in keyframe_graph:
@@ -557,7 +571,7 @@ def bundle_adjust_frames(
             optim.zero_grad()
         # print("\033[0;33;40m",'backward', "\033[0m")
         # loss.requires_grad_(True)
-        loss.backward()
+        loss.backward
         # print("\033[0;33;40m",'backward后', "\033[0m")
         for optim in optimizers:
             optim.step()

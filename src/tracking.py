@@ -62,7 +62,7 @@ class Tracking:
         self.start_frame += 1
 
     def spin(self, share_data, kf_buffer):
-        print("******* tracking process started! *******")
+        print("\033[0;33;40m","******* tracking process started! *******", "\033[0m")
         progress_bar = tqdm(
             range(self.start_frame, self.end_frame), position=0)
         progress_bar.set_description("tracking frame")

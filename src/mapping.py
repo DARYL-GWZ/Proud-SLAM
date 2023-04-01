@@ -86,7 +86,6 @@ class Mapping:
 
         
     def spin(self, share_data,kf_buffer):
-        # print("************mapping process started!******")
         print("\033[0;33;40m",'*****mapping process started!*****', "\033[0m")
         
         while True:
@@ -244,10 +243,11 @@ class Mapping:
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
-        pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:,-1:] / 2) * self.voxel_size
+        # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
+        pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
-        pcd_features = self.points_encoder(pcd_color)
+        pcd_features = self.points_encoder(pcd_color).requires_grad_(True)
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
@@ -260,17 +260,19 @@ class Mapping:
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
-        map_states["pointclouds_xyz"] = pcd_xyz
+        map_states["pointclouds_xyz"] = pcd_xyz.requires_grad_(True)
         map_states["pointclouds_color"] = pcd_color
         map_states["pointclouds_feature"] = pcd_features
         # print("\033[0;33;40m",'===============', "\033[0m")
         # np.savetxt('pcd_xyz.txt', pcd_xyz[:,0,:].numpy())
         # np.savetxt('centres.txt', centres.cpu().numpy())
         # np.savetxt('pcd_color.txt', pcd_color[:,0,:].cpu().numpy())
+        # np.savetxt('features.txt', features.cpu().numpy())
+        
         # print("\033[0;33;40m",'----------------', "\033[0m")
-        print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
-        print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
-        print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
+        # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
+        # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
+        # print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
 
         self.map_states = map_states
 
