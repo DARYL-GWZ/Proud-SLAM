@@ -131,35 +131,25 @@ def get_features_pcd(samples, map_states):
     sampled_dis = samples["sampled_point_distance"]
     
     # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
-    # xyz_list = []
-    # feats_list = []
+    xyz_list = []
+    feats_list = []
     # print("1:{}".format(torch.cuda.memory_allocated(0)))
 
-    #     for i in range(pointclouds_xyz.shape[1]):
-    #         per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
-    #         per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
-        #     xyz_list.append(per_pcd_xyz)
-        #     feats_list.append(per_pcd_feats)
-        # pointclouds_xyz = torch.stack(xyz_list, dim=1)
-        # pointclouds_feats = torch.stack(feats_list, dim=1)
-        
-
-    # pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
-    # pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
+    # for i in range(pointclouds_xyz.shape[1]):
+    #     per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
+    #     per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
+    #     xyz_list.append(per_pcd_xyz)
+    #     feats_list.append(per_pcd_feats)
+    # pointclouds_xyz = torch.stack(xyz_list, dim=1)
+    # pointclouds_feats = torch.stack(feats_list, dim=1)
+    # feats = get_embeddings_pcd(sampled_xyz, pointclouds_xyz, pointclouds_feats)
 
     # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
-    # pcd_feats_a = F.embedding(sampled_idx, point_feats)
-    # print("\033[0;33;40m",'pcd_feats_a',pcd_feats_a.shape, "\033[0m")
-    # pcd_feats = F.embedding(pcd_feats_a , pointclouds_feature.reshape(pointclouds_feature.shape[0],-1)).view(pcd_xyz.size(0), -1)
     # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
+
     
-    # print("2:{}".format(torch.cuda.memory_allocated(0)))
-    
-    # pointclouds_xyz = torch.rand(sampled_idx.shape[0], 8, 3).cuda()
-    # pointclouds_feats = torch.rand(sampled_idx.shape[0], 8, 16).cuda()
-    # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
-    # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
-    
+    pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
+    pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
     feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
     # print("\033[0;33;40m",'feats',feats.shape, "\033[0m")
     inputs = {"dists": sampled_dis, "emb": feats}
@@ -171,8 +161,8 @@ def get_embeddings_pcd(sample, positions, features):
     Computes features for the given sample points based on positions and features of the point cloud.
     :param sample: Tensor of shape (M, 3) representing the coordinates of M sample points.
     :param positions: Tensor of shape (M, N, 3) representing the coordinates of N points in M voxels.
-    :param features: Tensor of shape (M, N, 64) representing the features of N points in M voxels.
-    :return: Tensor of shape (M, 64) representing the features of M sample points.
+    :param features: Tensor of shape (M, N, 16) representing the features of N points in M voxels.
+    :return: Tensor of shape (M, 16) representing the features of M sample points.
     """
     M, N = positions.shape[:2]
     # Compute distances between sample points and voxel points
@@ -566,6 +556,7 @@ def bundle_adjust_frames(
 
         loss, _ = loss_criteria(
             final_outputs, (rgb_samples, depth_samples))
+        # print("\033[0;33;40m",'loss',loss, "\033[0m")
 
         for optim in optimizers:
             optim.zero_grad()
@@ -642,6 +633,7 @@ def track_frame(
             profiler.tick("loss_criteria")
         loss, _ = loss_criteria(
             final_outputs, (rgb, depth), weight_depth_loss=depth_variance)
+        # print("\033[0;33;40m",'loss',loss, "\033[0m")
         if iter == 0 and profiler is not None:
             profiler.tok("loss_criteria")
 

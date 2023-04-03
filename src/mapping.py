@@ -233,7 +233,9 @@ class Mapping:
 
         self.update_grid_pcd_features()
 
-
+# // voxels是一个N*4的张量，其中N是八叉树中非FEATURE类型的节点的数量。每一行代表一个节点对应的体素，包含了x,y,z坐标和边长。
+# // children是一个N*8的张量，其中N和上面相同。每一行代表一个节点和其八个子节点之间的索引关系。如果某个子节点不存在或者是FEATURE类型，则对应位置为-1。
+# // features是一个N*8的张量，其中N和上面相同。每一行代表一个节点对应体素的八个顶点是否有特征。如果某个顶点有特征，则对应位置为该特征节点在八叉树中的索引；否则为-1。
     @torch.enable_grad()
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
@@ -245,6 +247,7 @@ class Mapping:
         # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
         # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
         pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
+        # 将节点坐标从体素顶点移到体素中心
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
         pcd_features = self.points_encoder(pcd_color).requires_grad_(True)
@@ -260,15 +263,22 @@ class Mapping:
         map_states["voxel_center_xyz"] = centres
         map_states["voxel_structure"] = children
         map_states["voxel_vertex_emb"] = self.embeddings
-        map_states["pointclouds_xyz"] = pcd_xyz.requires_grad_(True)
+        map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
         map_states["pointclouds_feature"] = pcd_features
         # print("\033[0;33;40m",'===============', "\033[0m")
-        # np.savetxt('pcd_xyz.txt', pcd_xyz[:,0,:].numpy())
+        # np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
+        # np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
+        # np.savetxt('pcd_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())
+        # np.savetxt('pcd_xyz3.txt', pcd_xyz[:,3,:].cpu().numpy())
+        # np.savetxt('pcd_xyz4.txt', pcd_xyz[:,4,:].cpu().numpy())
+        # np.savetxt('pcd_xyz5.txt', pcd_xyz[:,5,:].cpu().numpy())
+        # np.savetxt('pcd_xyz6.txt', pcd_xyz[:,6,:].cpu().numpy())
+        # np.savetxt('pcd_xyz7.txt', pcd_xyz[:,7,:].cpu().numpy())
         # np.savetxt('centres.txt', centres.cpu().numpy())
-        # np.savetxt('pcd_color.txt', pcd_color[:,0,:].cpu().numpy())
-        # np.savetxt('features.txt', features.cpu().numpy())
         
+        # np.savetxt('pcd_features.txt', pcd_features[:,2,:].detach().cpu().numpy())
+        # np.savetxt('centres.txt', centres.cpu().numpy())
         # print("\033[0;33;40m",'----------------', "\033[0m")
         # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")

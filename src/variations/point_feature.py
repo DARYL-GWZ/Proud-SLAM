@@ -6,6 +6,8 @@ class PointsResNet(nn.Module):
     def __init__(self, feature_n):
         super(PointsResNet, self).__init__()
         resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+        for param in resnet.parameters():
+            param.requires_grad = False
         modules = list(resnet.children())[:-1]
         self.resnet = nn.Sequential(*modules)
         self.fc = nn.Linear(resnet.fc.in_features, feature_n)
