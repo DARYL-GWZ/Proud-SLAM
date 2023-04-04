@@ -245,8 +245,8 @@ class Mapping:
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
-        # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
-        pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
+        pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
+        # pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         # 将节点坐标从体素顶点移到体素中心
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)

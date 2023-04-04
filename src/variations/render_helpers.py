@@ -80,7 +80,9 @@ def get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size):
     # feats = torch.cat([(p-.5).squeeze(1).float(), feats], dim=-1)
     return feats
 
-
+# // voxels是一个N*4的张量，其中N是八叉树中非FEATURE类型的节点的数量。每一行代表一个节点对应的体素，包含了x,y,z坐标和边长。
+# // children是一个N*8的张量，其中N和上面相同。每一行代表一个节点和其八个子节点之间的索引关系。如果某个子节点不存在或者是FEATURE类型，则对应位置为-1。
+# // features是一个N*8的张量，其中N和上面相同。每一行代表一个节点对应体素的八个顶点是否有特征。如果某个顶点有特征，则对应位置为该特征节点在八叉树中的索引；否则为-1。
 @torch.enable_grad()
 def get_features_vox(samples, map_states, voxel_size):
     # encoder states
@@ -339,11 +341,15 @@ def render_rays(
    
     if profiler is not None:
         profiler.tok("ray_sample")
-    # sample configure caculation 计算光线上各个采样点的深度和有效位置
+    # sample configure caculation 计算光线上各个采样点的深度和有效值
     sampled_depth = samples['sampled_point_depth']
     sampled_idx = samples['sampled_point_voxel_idx'].long()
     # only compute when the rays hits  [1017, 60]
     sample_mask = sampled_idx.ne(-1)
+    # print("\033[0;33;40m",'sampled_depth',sampled_depth.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_idx',sampled_idx[0,:], "\033[0m")
+    
 
     
     if sample_mask.sum() == 0:  # miss everything skip
@@ -357,6 +363,13 @@ def render_rays(
     sampled_dir = sampled_dir / \
         (torch.norm(sampled_dir, 2, -1, keepdim=True) + 1e-8)
     # caculate the final sampled point's position and direction
+    # sampled_depth torch.Size([1024, 57]) 
+    # sampled_idx torch.Size([1024, 57]) 
+    # sampled_xyz torch.Size([1024, 57, 3]) 
+    # sampled_dir torch.Size([1024, 57, 3]) 
+    # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_dir',sampled_dir.shape, "\033[0m")
+    
     samples['sampled_point_xyz'] = sampled_xyz
     samples['sampled_point_ray_direction'] = sampled_dir
    
@@ -373,6 +386,7 @@ def render_rays(
     if chunk_size < 0:
         chunk_size = num_points
 
+    # samples_valid[sampled_point_xyz] torch.Size([20125, 3]) 
     # print("\033[0;33;40m",'samples_valid[sampled_point_xyz]',samples_valid['sampled_point_xyz'].shape, "\033[0m")
     
     for i in range(0, num_points, chunk_size):
