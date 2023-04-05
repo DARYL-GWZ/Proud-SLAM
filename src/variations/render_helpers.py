@@ -39,7 +39,6 @@ def masked_scatter_ones(mask, x):
 # 这段代码是一个函数，用于进行三线性插值，其中p是一个3D坐标，表示当前点的位置，
 # q是一个3D坐标，表示当前点周围的8个点的位置，point_feats是一个特征向量，
 # 表示当前点周围的8个点的特征。这段代码的主要作用是计算当前点的特征，
-# 以便进行点云分割等任务。
 @torch.enable_grad()
 def trilinear_interp(p, q, point_feats):
     weights = (p * q + (1 - p) * (1 - q)).prod(dim=-1, keepdim=True)
@@ -89,23 +88,25 @@ def get_features_vox(samples, map_states, voxel_size):
     point_feats = map_states["voxel_vertex_idx"].cuda()
     point_xyz = map_states["voxel_center_xyz"].cuda()
     values = map_states["voxel_vertex_emb"].cuda()
-    # print("\033[0;33;40m",'----------------', "\033[0m")
+    print("\033[0;33;40m",'----------------', "\033[0m")
     # print("\033[0;33;40m",'values',values.shape, "\033[0m")
-    # print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
-    # print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
+    print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
     
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
     sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
     sampled_dis = samples["sampled_point_distance"]
-    # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
+    print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_idx',sampled_idx[0], "\033[0m")
     point_xyz = F.embedding(sampled_idx, point_xyz)
-    # print("\033[0;33;40m",'处理后point_xyz',point_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
+    print("\033[0;33;40m",'point_xyz',point_xyz[0,:], "\033[0m")
+    
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
     # print("\033[0;33;40m",'F.embedding(sampled_idx, point_feats)',F.embedding(sampled_idx, point_feats).shape, "\033[0m")
-    # print("\033[0;33;40m",'处理后point_feats',point_feats.shape, "\033[0m")
+    print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
     
     feats = get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size)
@@ -152,7 +153,13 @@ def get_features_pcd(samples, map_states):
     
     pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
     pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
+    # pcd_feats = F.embedding(F.embedding(
+    # sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
+    
     feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
+    # print("\033[0;33;40m",'===============', "\033[0m")
+    # np.savetxt('pcd_xyz0.txt', feats.detach().cpu().numpy())
+    # print("\033[0;33;40m",'-------------', "\033[0m")
     # print("\033[0;33;40m",'feats',feats.shape, "\033[0m")
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
@@ -341,14 +348,17 @@ def render_rays(
    
     if profiler is not None:
         profiler.tok("ray_sample")
-    # sample configure caculation 计算光线上各个采样点的深度和有效值
+    # sample configure caculation 计算光线上各个采样点的深度和索引有效值
     sampled_depth = samples['sampled_point_depth']
     sampled_idx = samples['sampled_point_voxel_idx'].long()
     # only compute when the rays hits  [1017, 60]
     sample_mask = sampled_idx.ne(-1)
-    # print("\033[0;33;40m",'sampled_depth',sampled_depth.shape, "\033[0m")
+
     # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_idx',sampled_idx[0,:], "\033[0m")
+    # print("\033[0;33;40m",'sampled_depth',sampled_depth.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_depth',sampled_depth[0,:], "\033[0m")
+    
     
 
     
@@ -400,9 +410,9 @@ def render_rays(
             profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
-        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # with torch.no_grad():
-        chunk_inputs = get_features_pcd(chunk_samples, map_states)
+        # chunk_inputs = get_features_pcd(chunk_samples, map_states)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
