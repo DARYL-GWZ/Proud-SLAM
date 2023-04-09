@@ -107,3 +107,25 @@ inline uint64_t encode(const int x, const int y, const int z)
 {
     return (compute_morton(x, y, z) & MASK[MAX_BITS - 1]);
 }
+
+
+uint64_t morton3D(float x, float y, float z)
+{
+    x = std::min(std::max(x * 1024.0f, 0.0f), 1023.0f);
+    y = std::min(std::max(y * 1024.0f, 0.0f), 1023.0f);
+    z = std::min(std::max(z * 1024.0f, 0.0f), 1023.0f);
+    uint64_t xx = deinterleave(x);
+    uint64_t yy = deinterleave(y);
+    uint64_t zz = deinterleave(z);
+    return xx * 4 + yy * 2 + zz;
+}
+
+uint64_t deinterleave(float x)
+{
+    uint32_t xx = (uint32_t)x;
+    xx = (xx | (xx << 8)) & 0x00FF00FF;
+    xx = (xx | (xx << 4)) & 0x0F0F0F0F;
+    xx = (xx | (xx << 2)) & 0x33333333;
+    xx = (xx | (xx << 1)) & 0x55555555;
+    return xx;
+}

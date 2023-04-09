@@ -81,7 +81,7 @@ def get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size):
 
 # // voxels是一个N*4的张量，其中N是八叉树中非FEATURE类型的节点的数量。每一行代表一个节点对应的体素，包含了x,y,z坐标和边长。
 # // children是一个N*8的张量，其中N和上面相同。每一行代表一个节点和其八个子节点之间的索引关系。如果某个子节点不存在或者是FEATURE类型，则对应位置为-1。
-# // features是一个N*8的张量，其中N和上面相同。每一行代表一个节点对应体素的八个顶点是否有特征。如果某个顶点有特征，则对应位置为该特征节点在八叉树中的索引；否则为-1。
+# // point_feats是N*8的张量，其中N和上面相同。每一行代表一个节点对应体素的八个顶点是否有特征。如果某个顶点有特征，则对应位置为该特征节点在八叉树中的索引；否则为-1。
 @torch.enable_grad()
 def get_features_vox(samples, map_states, voxel_size):
     # encoder states
@@ -134,8 +134,8 @@ def get_features_pcd(samples, map_states):
     sampled_dis = samples["sampled_point_distance"]
     
     # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
-    xyz_list = []
-    feats_list = []
+    # xyz_list = []
+    # feats_list = []
     # print("1:{}".format(torch.cuda.memory_allocated(0)))
 
     # for i in range(pointclouds_xyz.shape[1]):
@@ -153,8 +153,10 @@ def get_features_pcd(samples, map_states):
     
     pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
     pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
-    # pcd_feats = F.embedding(F.embedding(
-    # sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
+    # pcd_feats = F.embedding(F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1)), values)
+    
+    # pcd_feats = F.embedding(sampled_idx, point_feats), values)
+    # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
     
     feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
     # print("\033[0;33;40m",'===============', "\033[0m")

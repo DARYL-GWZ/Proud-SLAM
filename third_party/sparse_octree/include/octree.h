@@ -47,8 +47,8 @@ public:
     ~Octant() {}
     // int point_indices_;
     // uint64_t *point_data_[10]; 
-    std::vector<uint64_t> point_data_xyz; 
-    std::vector<uint64_t> point_data_color; 
+    std::vector<float> point_data_xyz; 
+    std::vector<float> point_data_color; 
     // torch::Tensor point_xyz;
     // auto point_data_xyz = point_xyz.accessor<int, 2>();
     // torch::Tensor point_data_color;
@@ -93,7 +93,7 @@ public:
     void init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t max_num);
 
     // allocate voxels
-    void insert(torch::Tensor vox,torch::Tensor color);
+    void insert(torch::Tensor vox,torch::Tensor color,torch::Tensor pcd);
     double try_insert(torch::Tensor pts);
 
     // find a particular octant

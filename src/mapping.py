@@ -69,6 +69,10 @@ class Mapping:
             (num_embeddings, self.embed_dim),
             requires_grad=True, dtype=torch.float32,
             device=torch.device("cuda"))
+        # self.embeddings = torch.zeros(
+        #     (num_embeddings, 2),
+        #     requires_grad=True, dtype=torch.float32,
+        #     device=torch.device("cuda"))
         print("\033[0;33;40m",'self.embeddings',self.embeddings.shape, "\033[0m")
         torch.nn.init.normal_(self.embeddings, std=0.01)
         self.embed_optim = torch.optim.Adam([self.embeddings], lr=5e-3)
@@ -227,9 +231,9 @@ class Mapping:
         # print("\033[0;33;40m",'===============', "\033[0m")
         # np.savetxt('colors.txt', colors.cpu().numpy())
         # np.savetxt('points.txt', points.cpu().numpy())
-        # np.savetxt('o_color.txt', o_color.cpu().numpy())
+        # np.savetxt('voxels.txt', voxels.cpu().numpy())
 
-        self.svo.insert(voxels.cpu().int(),colors.cpu().int())
+        self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
 
         self.update_grid_pcd_features()
 
@@ -239,7 +243,12 @@ class Mapping:
     @torch.enable_grad()
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
-
+        print("\033[0;33;40m",'===============', "\033[0m")
+        np.savetxt('voxels.txt', voxels.cpu().numpy())
+        np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
+        np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
+        np.savetxt('pcd_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())
+        print("\033[0;33;40m",'---------------', "\033[0m")
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
