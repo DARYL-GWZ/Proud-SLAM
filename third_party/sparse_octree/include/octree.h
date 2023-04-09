@@ -47,8 +47,12 @@ public:
     ~Octant() {}
     // int point_indices_;
     // uint64_t *point_data_[10]; 
-    std::vector<float> point_data_xyz; 
+    std::vector<float> point_data_x; 
+    std::vector<float> point_data_y; 
+    std::vector<float> point_data_z; 
     std::vector<float> point_data_color; 
+    // std::vector<long long> point_data_pcd; 
+
     // torch::Tensor point_xyz;
     // auto point_data_xyz = point_xyz.accessor<int, 2>();
     // torch::Tensor point_data_color;

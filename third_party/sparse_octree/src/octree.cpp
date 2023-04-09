@@ -55,7 +55,7 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t
 }
 
 
-void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcds)
+void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
 {
     // temporal solution
     all_pts.push_back(pts);
@@ -68,7 +68,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcds)
 
     auto points = pts.accessor<int, 2>();
     auto colors = color.accessor<int, 2>();
-    auto pcd = pcds.accessor<float, 2>();
+    auto pcds = pcd.accessor<float, 2>();
 
     if (points.size(1) != 3)
     {
@@ -80,9 +80,9 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcds)
         std::cout << "Colors dimensions mismatch: inputs are " << colors.size(1) << " expect 3" << std::endl;
         return;
     }
-    if (pcd.size(1) != 3)
+    if (pcds.size(1) != 3)
     {
-        std::cout << "pcd dimensions mismatch: inputs are " << pcd.size(1) << " expect 3" << std::endl;
+        std::cout << "pcd dimensions mismatch: inputs are " << pcds.size(1) << " expect 3" << std::endl;
         return;
     }
     for (int i = 0; i < points.size(0); ++i)
@@ -118,16 +118,14 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcds)
                     tmp->is_leaf_ = is_leaf;
                     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
                     // if (is_leaf) {
-                    if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
+                    if (tmp->point_data_color.size() < MAX_POINTS_PER_LEAF){
                         // std::cout << "创建新节点"<< std::endl;
-                        // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
-                        float x = pcd[i][0] 
-                        pcd[i][1], pcd[i][2])& MASK[d + shift] ;
-                        float color = encode(colors[i][0], colors[i][1], colors[i][2]) & MASK[d + shift];
-                        tmp->point_data_x.push_back(pcd[i][0]);  
-                        tmp->point_data_y.push_back(pcd[i][0]);  
-                        tmp->point_data_z.push_back(pcd[i][0]);  
-                        tmp->point_data_color.push_back(color);  
+                        // float xyz = encode(pcds[i][0], pcds[i][1], pcds[i][2]);
+                        float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
+                        tmp->point_data_x.push_back(pcds[i][0]);  
+                        tmp->point_data_y.push_back(pcds[i][1]);  
+                        tmp->point_data_z.push_back(pcds[i][2]);  
+                        tmp->point_data_color.push_back(color); 
                     }
                     // }
 
@@ -140,14 +138,16 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcds)
                         tmp->type_ = SURFACE;
 
                     // if (tmp->is_leaf_) {
-                    if (tmp->point_data_xyz.size() < MAX_POINTS_PER_LEAF){
+                    if (tmp->point_data_color.size() < MAX_POINTS_PER_LEAF){
                         // std::cout << "tmp->point_data_xyz.size()" << tmp->point_data_xyz.size()<< std::endl;
-                        float xyz = encode(pcd[i][0], pcd[i][1], pcd[i][2])& MASK[d + shift];
-                        float color = encode(colors[i][0], colors[i][1], colors[i][2])& MASK[d + shift];
-                        tmp->point_data_xyz.push_back(xyz);  
-                        tmp->point_data_color.push_back(color);  
+                        // float xyz = encode(pcd[i][0], pcd[i][1], pcd[i][2])& MASK[d + shift];
+                        // float color = encode(colors[i][0], colors[i][1], colors[i][2])& MASK[d + shift];
+                        float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
+                        tmp->point_data_x.push_back(pcds[i][0]);  
+                        tmp->point_data_y.push_back(pcds[i][1]);  
+                        tmp->point_data_z.push_back(pcds[i][2]);  
+                        tmp->point_data_color.push_back(color); 
                         }           
-                        // }
                 }
                 n = tmp;
             }
@@ -391,13 +391,15 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
             }
         }
 
-        for (int i = 0; i < node_ptr->point_data_xyz.size(); i++) {
-            auto xyz_ = decode(node_ptr->point_data_xyz[i]);
-            auto color_ = decode(node_ptr->point_data_color[i]);
-            xyz_array[i][0]=xyz_[0];
-            xyz_array[i][1]=xyz_[1];
-            xyz_array[i][2]=xyz_[2];
+        for (int i = 0; i < node_ptr->point_data_x.size(); i++) {
+            auto x_ = node_ptr->point_data_x[i];
+            auto y_ = node_ptr->point_data_y[i];
+            auto z_ = node_ptr->point_data_z[i];
+            xyz_array[i][0]=x_;
+            xyz_array[i][1]=y_;
+            xyz_array[i][2]=z_;
             xyz_array[i][3]=float(node_ptr->side_);
+            auto color_ = hilbert_decode(node_ptr->point_data_color[i]);
             color_array[i][0]=color_[0];
             color_array[i][1]=color_[1];
             color_array[i][2]=color_[2];
