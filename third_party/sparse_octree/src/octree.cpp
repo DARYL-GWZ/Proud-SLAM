@@ -400,13 +400,14 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
             xyz_array[i][2]=z_;
             xyz_array[i][3]=float(node_ptr->side_);
             auto color_ = hilbert_decode(node_ptr->point_data_color[i]);
+            // std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
             color_array[i][0]=color_[0];
             color_array[i][1]=color_[1];
             color_array[i][2]=color_[2];
-            // if(flag5 < 5){
-            //     std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
-            //     flag5 ++;
-            // }
+            if(flag5 < 5){
+                std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
+                flag5 ++;
+            }
         }
         // std::cout << "Finish"<< std::endl;
 
