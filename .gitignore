@@ -5,4 +5,4 @@ dist/
 logs/
 .vscode/
 /*.txt
-/test.py
+test.py
