@@ -285,35 +285,42 @@ import time
 # print("\033[0;33;40m",'weights',weights[0], "\033[0m")
 
 # ============== pcd feature cal test=============
-import torch
-import torch.nn.functional as F
-pointclouds_xyz = torch.rand(2272, 8, 3)
-sampled_idx = torch.rand(10000).long()
-point_feats = torch.rand(10000, 3)
-pointclouds_feature = torch.rand(2272, 8, 64)
-#  values torch.Size([20000, 16]) 
-#  原始pointclouds_xyz torch.Size([2272, 8, 3]) 
-#  point_feats torch.Size([2272, 8]) 
-#  pointclouds_feature torch.Size([2272, 8, 64]) 
+# import torch
+# import torch.nn.functional as F
+# pointclouds_xyz = torch.rand(2272, 8, 3)
+# sampled_idx = torch.rand(10000).long()
+# point_feats = torch.rand(10000, 3)
+# pointclouds_feature = torch.rand(2272, 8, 64)
+# #  values torch.Size([20000, 16]) 
+# #  原始pointclouds_xyz torch.Size([2272, 8, 3]) 
+# #  point_feats torch.Size([2272, 8]) 
+# #  pointclouds_feature torch.Size([2272, 8, 64]) 
 
 
-xyz_list = []
-feats_list = []
-for i in range(pointclouds_xyz.shape[1]):
-    per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
-    print("\033[0;33;40m",'per_pcd_xyz',per_pcd_xyz.shape, "\033[0m")
-    per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
-                                # .long(), pointclouds_feature[:,i,:]).view(pointclouds_xyz[:,i,:].size(0), -1)
-    print("\033[0;33;40m",'per_pcd_feats',per_pcd_feats.shape, "\033[0m")
-    xyz_list.append(per_pcd_xyz)
-    feats_list.append(per_pcd_feats)
+# xyz_list = []
+# feats_list = []
+# for i in range(pointclouds_xyz.shape[1]):
+#     per_pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz[:,i,:])
+#     print("\033[0;33;40m",'per_pcd_xyz',per_pcd_xyz.shape, "\033[0m")
+#     per_pcd_feats = F.embedding(sampled_idx, pointclouds_feature[:,i,:])
+#                                 # .long(), pointclouds_feature[:,i,:]).view(pointclouds_xyz[:,i,:].size(0), -1)
+#     print("\033[0;33;40m",'per_pcd_feats',per_pcd_feats.shape, "\033[0m")
+#     xyz_list.append(per_pcd_xyz)
+#     feats_list.append(per_pcd_feats)
     
-pointclouds_xyz = torch.stack(xyz_list, dim=1)
-pointclouds_feats = torch.stack(feats_list, dim=1)
-print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
-print("\033[0;33;40m",'pointclouds_feats',pointclouds_feats.shape, "\033[0m")
+# pointclouds_xyz = torch.stack(xyz_list, dim=1)
+# pointclouds_feats = torch.stack(feats_list, dim=1)
+# print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
+# print("\033[0;33;40m",'pointclouds_feats',pointclouds_feats.shape, "\033[0m")
 
 
-tensor = torch.randn(3, 4)
-with open('tensor.txt', 'w') as file:
-    file.write(str(tensor))
+# tensor = torch.randn(3, 4)
+# with open('tensor.txt', 'w') as file:
+#     file.write(str(tensor))
+
+# # ============== tensorboardx test=============
+# from tensorboardX import SummaryWriter
+# writer = SummaryWriter()
+# for i in range(10):
+#     writer.add_scalar('quadratic', i**2, global_step=i)
+#     writer.add_scalar('exponential', 2**i, global_step=i)

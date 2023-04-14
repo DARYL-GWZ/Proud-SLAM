@@ -8,11 +8,11 @@ import trimesh
 
 from criterion import Criterion
 from loggers import BasicLogger
-from utils.import_util import get_decoder, get_property
+from utils.import_util import get_decoder, get_property, get_resnet
 from variations.render_helpers import bundle_adjust_frames
 from utils.mesh_util import MeshExtractor
 import open3d as o3d
-from variations.point_feature import PointsResNet
+# from variations.point_feature import PointsResNet
 
 torch.classes.load_library(
     "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
@@ -32,6 +32,7 @@ class Mapping:
         self.logger = logger
         self.visualizer = vis
         self.decoder = get_decoder(args).cuda()
+        self.points_encoder = get_resnet(args).cuda()
 
         self.loss_criteria = Criterion(args)
         self.keyframe_graph = []
@@ -73,19 +74,19 @@ class Mapping:
         #     (num_embeddings, 2),
         #     requires_grad=True, dtype=torch.float32,
         #     device=torch.device("cuda"))
-        print("\033[0;33;40m",'self.embeddings',self.embeddings.shape, "\033[0m")
+        # print("\033[0;33;40m",'self.embeddings',self.embeddings.shape, "\033[0m")
         torch.nn.init.normal_(self.embeddings, std=0.01)
         self.embed_optim = torch.optim.Adam([self.embeddings], lr=5e-3)
         self.model_optim = torch.optim.Adam(self.decoder.parameters(), lr=5e-3)
 
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size, 8)
-        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
+        # print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
         
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
-        self.points_encoder = PointsResNet(16)
+        # self.points_encoder = PointsResNet(16)
         self.resnet_optim = torch.optim.Adam(self.points_encoder.parameters(), lr=5e-3) 
 
         
@@ -128,8 +129,8 @@ class Mapping:
                 if self.mesh_freq > 0 and (tracked_frame.stamp + 1) % self.mesh_freq == 0:
                     self.logger.log_mesh(self.extract_mesh(
                         res=self.mesh_res, clean_mesh=True), name=f"mesh_{tracked_frame.stamp:05d}.ply")
-
                 if self.save_data_freq > 0 and (tracked_frame.stamp + 1) % self.save_data_freq == 0:
+                    print("\033[0;33;40m",'mapping print debug img', "\033[0m")
                     self.save_debug_data(tracked_frame)
             elif share_data.stop_mapping:
                 break
@@ -159,6 +160,8 @@ class Mapping:
     ):
         # self.map.create_voxels(self.keyframe_graph[0])
         self.decoder.train()
+        self.points_encoder.train()
+        
         # 选择要ba优化的关键帧序列
         optimize_targets = self.select_optimize_targets(tracked_frame)
         # optimize_targets = [f.cuda() for f in optimize_targets]
@@ -261,12 +264,13 @@ class Mapping:
         # 将节点坐标从体素顶点移到体素中心
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
         children = torch.cat([children, voxels[:, -1:]], -1)
-        pcd_features = self.points_encoder(pcd_color).requires_grad_(True)
+        pcd_color = pcd_color.cuda()
+        pcd_features = self.points_encoder(pcd_color).cuda().requires_grad_(True)
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
-        pcd_xyz = pcd_xyz.cuda().float()
-        pcd_features = pcd_features.cuda().float()
+        pcd_xyz = pcd_xyz[:,:,:3].cuda().float()
+        # pcd_features = pcd_features.cuda().float()
         
         
         map_states = {}

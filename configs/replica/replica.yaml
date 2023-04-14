@@ -1,6 +1,7 @@
 log_dir: './logs'
 decoder: nrgbd
 dataset: replica
+resnet: resnet
 
 criteria:
   rgb_weight: .5
@@ -8,6 +9,10 @@ criteria:
   sdf_weight: 5000.0
   fs_weight: 10.0
   sdf_truncation: 0.1
+
+resnet_specs:
+  feature_n: 16
+
 
 decoder_specs:
   depth: 2

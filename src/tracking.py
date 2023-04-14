@@ -86,6 +86,7 @@ class Tracking:
                 self.do_tracking(share_data, current_frame, kf_buffer)
                 # print("\033[0;33;40m",'xxxxxxxxxxx3', "\033[0m")
                 if self.render_freq > 0 and (frame_id + 1) % self.render_freq == 0:
+                    print("\033[0;33;40m",'tracking print debug img', "\033[0m")
                     self.render_debug_images(share_data, current_frame)
             except Exception as e:
                         print("error in dataloading: ", e,

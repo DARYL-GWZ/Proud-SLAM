@@ -9,6 +9,10 @@ def get_decoder(args):
     Decoder = import_module("variations."+args.decoder)
     return Decoder.Decoder(**args.decoder_specs)
 
+def get_resnet(args):
+    Decoder = import_module("variations."+args.resnet)
+    return Decoder.PointsResNet(**args.resnet_specs)
+
 def get_property(args, name, default):
     if isinstance(args, dict):
         return args.get(name, default)

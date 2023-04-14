@@ -7,6 +7,7 @@ import numpy as np
 from math import sqrt
 from annoy import AnnoyIndex
 
+
 def ray(ray_start, ray_dir, depths):
     return ray_start + ray_dir * depths
 
@@ -88,25 +89,25 @@ def get_features_vox(samples, map_states, voxel_size):
     point_feats = map_states["voxel_vertex_idx"].cuda()
     point_xyz = map_states["voxel_center_xyz"].cuda()
     values = map_states["voxel_vertex_emb"].cuda()
-    print("\033[0;33;40m",'----------------', "\033[0m")
-    # print("\033[0;33;40m",'values',values.shape, "\033[0m")
-    print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'----------------', "\033[0m")
+    # # print("\033[0;33;40m",'values',values.shape, "\033[0m")
+    # print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
     
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
     sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
     sampled_dis = samples["sampled_point_distance"]
-    print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_idx',sampled_idx[0], "\033[0m")
     point_xyz = F.embedding(sampled_idx, point_xyz)
-    print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'point_xyz',point_xyz[0,:], "\033[0m")
+    # print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'point_xyz',point_xyz[0,:], "\033[0m")
     
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
     # print("\033[0;33;40m",'F.embedding(sampled_idx, point_feats)',F.embedding(sampled_idx, point_feats).shape, "\033[0m")
-    print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
     
     feats = get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size)
@@ -503,6 +504,8 @@ def bundle_adjust_frames(
     resnet_optim=None,
     update_pose=True,
 ):
+    # save_path = './proud_log/'
+    # summary_writer = SummaryWriter(save_path)
     # optimize_params = [{'params': embeddings, 'lr': learning_rate[0]}]
     optimizers = [embed_optim]
     # optimizers = [model_optim]
@@ -531,7 +534,7 @@ def bundle_adjust_frames(
     
     
     # sampling number after getted the new frame
-    for _ in range(num_iterations):
+    for i in range(num_iterations):
 
         rays_o = []
         rays_d = []
@@ -583,12 +586,13 @@ def bundle_adjust_frames(
         loss, _ = loss_criteria(
             final_outputs, (rgb_samples, depth_samples))
         # print("\033[0;33;40m",'loss',loss, "\033[0m")
-
         for optim in optimizers:
             optim.zero_grad()
         # print("\033[0;33;40m",'backward', "\033[0m")
         # loss.requires_grad_(True)
-        loss.backward
+        loss.backward(retain_graph=True)
+        # summary_writer.add_scalar('train/loss', loss.item(), i)
+        
         # print("\033[0;33;40m",'backward后', "\033[0m")
         for optim in optimizers:
             optim.step()
