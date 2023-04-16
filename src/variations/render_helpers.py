@@ -413,9 +413,9 @@ def render_rays(
             profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
-        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # with torch.no_grad():
-        # chunk_inputs = get_features_pcd(chunk_samples, map_states)
+        chunk_inputs = get_features_pcd(chunk_samples, map_states)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
@@ -586,13 +586,13 @@ def bundle_adjust_frames(
         loss, _ = loss_criteria(
             final_outputs, (rgb_samples, depth_samples))
         # print("\033[0;33;40m",'loss',loss, "\033[0m")
+        # with torch.autograd.set_detect_anomaly(True):
         for optim in optimizers:
             optim.zero_grad()
-        # print("\033[0;33;40m",'backward', "\033[0m")
-        # loss.requires_grad_(True)
+        print("\033[0;33;40m",'backward', "\033[0m")
         loss.backward(retain_graph=True)
-        # summary_writer.add_scalar('train/loss', loss.item(), i)
-        
+        print("\033[0;33;40m",'backward后', "\033[0m")
+
         # print("\033[0;33;40m",'backward后', "\033[0m")
         for optim in optimizers:
             optim.step()
@@ -670,7 +670,10 @@ def track_frame(
         if iter == 0 and profiler is not None:
             profiler.tick("backward step")
         optim.zero_grad()
+        print("\033[0;33;40m",'tracking backward', "\033[0m")
         loss.backward()
+        print("\033[0;33;40m",'tracking backward后', "\033[0m")
+        
         optim.step()
         if iter == 0 and profiler is not None:
             profiler.tok("backward step")
