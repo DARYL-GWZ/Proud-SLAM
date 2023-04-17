@@ -540,6 +540,9 @@ def bundle_adjust_frames(
         rays_d = []
         rgb_samples = []
         depth_samples = []
+        print("\033[0;33;40m",'i= ',i , "\033[0m")
+        # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        
         
         # random sampling in the whole keyframe_graph
         for frame in keyframe_graph:
@@ -589,6 +592,7 @@ def bundle_adjust_frames(
         # with torch.autograd.set_detect_anomaly(True):
         for optim in optimizers:
             optim.zero_grad()
+        # print("\033[0;33;40m",'optimizers',optimizers, "\033[0m")
         print("\033[0;33;40m",'backward', "\033[0m")
         loss.backward(retain_graph=True)
         print("\033[0;33;40m",'backward后', "\033[0m")

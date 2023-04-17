@@ -95,20 +95,26 @@ class Mapping:
         
         while True:
             # torch.cuda.empty_cache()
+            print("\033[0;33;40m",'kf_buffer.empty()1',kf_buffer.empty(), "\033[0m")      
             if not kf_buffer.empty():
                 tracked_frame = kf_buffer.get()
 
                 if not self.initialized:
                     if self.mesher is not None:
                         self.mesher.rays_d = tracked_frame.get_rays()
+                    print("\033[0;33;40m",'initialization', "\033[0m")      
                     self.create_voxels_pointcloud(tracked_frame)
                     # self.create_pointcloud(tracked_frame)
                     self.insert_keyframe(tracked_frame)
+                    print("\033[0;33;40m",'kf_buffer.empty()',kf_buffer.empty(), "\033[0m")      
                     while kf_buffer.empty():
+                        print("\033[0;33;40m",'initialization2', "\033[0m")      
                         self.do_mapping(share_data)
+                        print("\033[0;33;40m",'initialization3', "\033[0m")      
                         # self.update_share_data(share_data, tracked_frame.stamp)
                     self.initialized = True
                 else:
+                    print("\033[0;33;40m",'initialization后', "\033[0m")      
                     self.do_mapping(share_data, tracked_frame)
                     self.create_voxels_pointcloud(tracked_frame)
                     # self.create_pointcloud(tracked_frame)
@@ -160,7 +166,7 @@ class Mapping:
     ):
         # self.map.create_voxels(self.keyframe_graph[0])
         self.decoder.train()
-        self.points_encoder.train()
+        # self.points_encoder.train()
         
         # 选择要ba优化的关键帧序列
         optimize_targets = self.select_optimize_targets(tracked_frame)
@@ -258,7 +264,7 @@ class Mapping:
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
-        # print("\033[0;33;40m",'pointclous',pcd_color.shape, "\033[0m")
+        print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
         # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
         # pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         # 将节点坐标从体素顶点移到体素中心
