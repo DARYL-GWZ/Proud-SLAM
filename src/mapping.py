@@ -81,7 +81,7 @@ class Mapping:
 
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size, 8)
-        # print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
+        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
         
         self.frame_poses = []
         self.depth_maps = []

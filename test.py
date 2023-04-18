@@ -242,33 +242,57 @@
 # features 表示点云特征数据
 # 函数首先计算每个采样点和每个点云的距离，然后基于距离计算每个点云对采样点的权重
 # 最后将权重与特征值相乘并求和，得到采样点的特征
-# def compute_sample_features(sample, positions, features):
-#     """
-#     Computes features for the given sample points based on positions and features of the point cloud.
-#     :param sample: Tensor of shape (M, 3) representing the coordinates of M sample points.
-#     :param positions: Tensor of shape (M, N, 3) representing the coordinates of N points in M voxels.
-#     :param features: Tensor of shape (M, N, 64) representing the features of N points in M voxels.
-#     :return: Tensor of shape (M, 64) representing the features of M sample points.
-#     """
-#     M, N = positions.shape[:2]
+import  torch
+import time
+import numpy as np
+def compute_sample_features(sample, positions, features):
+    """
+    Computes features for the given sample points based on positions and features of the point cloud.
+    :param sample: Tensor of shape (M, 3) representing the coordinates of M sample points.
+    :param positions: Tensor of shape (M, N, 3) representing the coordinates of N points in M voxels.
+    :param features: Tensor of shape (M, N, 64) representing the features of N points in M voxels.
+    :return: Tensor of shape (M, 64) representing the features of M sample points.
+    """
+    M, N = positions.shape[:2]
 
-#     # Compute distances between sample points and voxel points
+    # Compute distances between sample points and voxel points
     
-#     print("\033[0;33;40m",'sample.unsqueeze(1) - positions',(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1)).shape, "\033[0m")
-#     distances = torch.sqrt(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1))  # Shape: (M, N)
+    # print("\033[0;33;40m",'sample.unsqueeze(1) - positions',(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1)).shape, "\033[0m")
+    distances = torch.sqrt(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1))  # Shape: (M, N)
     
-#     print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
-#     # Compute weights based on distances.
-#     weights = torch.softmax(-distances, dim=-1)  # Shape: (M, N)
-#     print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
-#     print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
-#     print("\033[0;33;40m",'features',features.shape, "\033[0m")
-#     # Compute weighted average of features.
-#     sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
+    # print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
+    # Compute weights based on distances.
+    # np.savetxt('test_distances.txt', distances.detach().cpu().numpy())
+    print("\033[0;33;40m",'distances',distances, "\033[0m")
+    weights = torch.softmax(-(distances*distances), dim=-1)  # Shape: (M, N)
+    print("\033[0;33;40m",'weights',weights, "\033[0m")
+    
+    # print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
+    # print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
+    # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+    # Compute weighted average of features.
+    sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
 
-#     return sample_features
+    return sample_features
 
 # start = time.time()
+feature = torch.tensor([[[1,8,3,2,4,111],[1,8,3,2,4,5],
+                         [1,8,3,2,4,5],[1,8,3,2,4,5],
+                         [1,8,3,2,4,5],[1,8,3,2,4,5],
+                         [1,8,3,2,4,5],[1,8,3,2,4,5]]]).float()
+positions = torch.tensor([[[1,8,5],[1,8,4],[1,8,3],
+                           [1,8,3],[1,8,3],[1,8,3],
+                           [1,8,3],[1,8,3]]]).float()
+sample = torch.tensor([[1,8,3]]).float()
+print("\033[0;33;40m",'feature',feature.shape, "\033[0m")
+print("\033[0;33;40m",'positions',positions.shape, "\033[0m")
+print("\033[0;33;40m",'sample',sample.shape, "\033[0m")
+features = compute_sample_features(sample,positions, feature)
+print("\033[0;33;40m",'sample features',features.shape, "\033[0m")
+print("\033[0;33;40m",'sample features',features, "\033[0m")
+
+
+
 # samples_xyz = torch.rand(10000, 3)
 # query_xyz = torch.rand(10000,8, 3)
 # query_fea = torch.rand(10000,8, 128)
@@ -326,104 +350,104 @@
 #     writer.add_scalar('exponential', 2**i, global_step=i)
 
 # # ============== resnet test=============
-import  torch
-from    torch import  nn
-from    torch.nn import functional as F
-from    torch.utils.data import DataLoader
-from    torchvision import datasets
-from    torchvision import transforms
-from    torch import nn, optim
+# import  torch
+# from    torch import  nn
+# from    torch.nn import functional as F
+# from    torch.utils.data import DataLoader
+# from    torchvision import datasets
+# from    torchvision import transforms
+# from    torch import nn, optim
 
-# from    torchvision.models import resnet18
+# # from    torchvision.models import resnet18
 
-class ResBlk(nn.Module):
-    """
-    resnet block
-    """
-    def __init__(self, ch_in, ch_out):
-        """
-        :param ch_in:
-        :param ch_out:
-        """
-        super(ResBlk, self).__init__()
-        self.conv1 = nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1)
-        self.bn1 = nn.BatchNorm2d(ch_out)
-        self.conv2 = nn.Conv2d(ch_out, ch_out, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(ch_out)
-        self.extra = nn.Sequential()
-        if ch_out != ch_in:
-            # [b, ch_in, h, w] => [b, ch_out, h, w]
-            self.extra = nn.Sequential(
-                nn.Conv2d(ch_in, ch_out, kernel_size=1, stride=1),
-                nn.BatchNorm2d(ch_out)
-            )
+# class ResBlk(nn.Module):
+#     """
+#     resnet block
+#     """
+#     def __init__(self, ch_in, ch_out):
+#         """
+#         :param ch_in:
+#         :param ch_out:
+#         """
+#         super(ResBlk, self).__init__()
+#         self.conv1 = nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1)
+#         self.bn1 = nn.BatchNorm2d(ch_out)
+#         self.conv2 = nn.Conv2d(ch_out, ch_out, kernel_size=3, stride=1, padding=1)
+#         self.bn2 = nn.BatchNorm2d(ch_out)
+#         self.extra = nn.Sequential()
+#         if ch_out != ch_in:
+#             # [b, ch_in, h, w] => [b, ch_out, h, w]
+#             self.extra = nn.Sequential(
+#                 nn.Conv2d(ch_in, ch_out, kernel_size=1, stride=1),
+#                 nn.BatchNorm2d(ch_out)
+#             )
 
-    def forward(self, x):
-        """
-        :param x: [b, ch, h, w]
-        :return:
-        """
-        out = F.relu(self.bn1(self.conv1(x)))
-        print("\033[0;33;40m",'out',out.shape, "\033[0m")
-        out = self.bn2(self.conv2(out))
-        out = self.extra(x) + out
-        return out
+#     def forward(self, x):
+#         """
+#         :param x: [b, ch, h, w]
+#         :return:
+#         """
+#         out = F.relu(self.bn1(self.conv1(x)))
+#         print("\033[0;33;40m",'out',out.shape, "\033[0m")
+#         out = self.bn2(self.conv2(out))
+#         out = self.extra(x) + out
+#         return out
 
-class ResNet18(nn.Module):
-    def __init__(self, feature_n):
-        super(ResNet18, self).__init__()
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(16)
-        )
-        # followed 4 blocks
-        # [b, 64, h, w] => [b, 128, h ,w]
-        self.blk1 = ResBlk(16, 16)
-        # [b, 128, h, w] => [b, 256, h, w]
-        self.blk2 = ResBlk(16, 32)
-        # # [b, 256, h, w] => [b, 512, h, w]
-        # self.blk3 = ResBlk(128, 256)
-        # # [b, 512, h, w] => [b, 1024, h, w]
-        # self.blk4 = ResBlk(256, 512)
-        self.outlayer = nn.Linear(32, feature_n)
+# class ResNet18(nn.Module):
+#     def __init__(self, feature_n):
+#         super(ResNet18, self).__init__()
+#         self.conv1 = nn.Sequential(
+#             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
+#             nn.BatchNorm2d(16)
+#         )
+#         # followed 4 blocks
+#         # [b, 64, h, w] => [b, 128, h ,w]
+#         self.blk1 = ResBlk(16, 16)
+#         # [b, 128, h, w] => [b, 256, h, w]
+#         self.blk2 = ResBlk(16, 32)
+#         # # [b, 256, h, w] => [b, 512, h, w]
+#         # self.blk3 = ResBlk(128, 256)
+#         # # [b, 512, h, w] => [b, 1024, h, w]
+#         # self.blk4 = ResBlk(256, 512)
+#         self.outlayer = nn.Linear(32, feature_n)
 
-    def forward(self, x):
-        """
-        :param x:
-        :return:
-        """
-        x = x.view(-1, 3, 1,1)
-        x = F.relu(self.conv1(x))
-        # print("\033[0;33;40m",'x1',x.shape, "\033[0m")
-        # [b, 64, h, w] => [b, 1024, h, w]
-        x = self.blk1(x)
-        x = self.blk2(x)
-        # print("\033[0;33;40m",'xx',x.shape, "\033[0m")
-        x = x.view(x.size(0), -1)
-        # print("\033[0;33;40m",'xxx',x.shape, "\033[0m")
-        x = self.outlayer(x)
-        x = x.view(-1, 8, x.size(1))
-        return x
-
-
-
-def main():
-
-    device = torch.device('cuda')
-    model = ResNet18(16).to(device)
-    x = torch.rand(3000,8,3).to(device)
-
-    print("\033[0;33;40m",'x',x.shape, "\033[0m")
-
-    logits = model(x)
-    print("\033[0;33;40m",'logits',logits.shape, "\033[0m")
+#     def forward(self, x):
+#         """
+#         :param x:
+#         :return:
+#         """
+#         x = x.view(-1, 3, 1,1)
+#         x = F.relu(self.conv1(x))
+#         # print("\033[0;33;40m",'x1',x.shape, "\033[0m")
+#         # [b, 64, h, w] => [b, 1024, h, w]
+#         x = self.blk1(x)
+#         x = self.blk2(x)
+#         # print("\033[0;33;40m",'xx',x.shape, "\033[0m")
+#         x = x.view(x.size(0), -1)
+#         # print("\033[0;33;40m",'xxx',x.shape, "\033[0m")
+#         x = self.outlayer(x)
+#         x = x.view(-1, 8, x.size(1))
+#         return x
 
 
 
+# def main():
+
+#     device = torch.device('cuda')
+#     model = ResNet18(16).to(device)
+#     x = torch.rand(3000,8,3).to(device)
+
+#     print("\033[0;33;40m",'x',x.shape, "\033[0m")
+
+#     logits = model(x)
+#     print("\033[0;33;40m",'logits',logits.shape, "\033[0m")
 
 
-if __name__ == '__main__':
-    main()
+
+
+
+# if __name__ == '__main__':
+#     main()
     
 # import torch
 # import torch.nn as nn

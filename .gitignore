@@ -6,3 +6,4 @@ logs/
 .vscode/
 /*.txt
 /test
+runs/

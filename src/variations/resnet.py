@@ -144,7 +144,7 @@ class PointsResNet(nn.Module):
         super(PointsResNet, self).__init__()
         self.resnet = nn.Sequential(
             # nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
-            nn.Linear(3, 64),
+            nn.Linear(6, 64),
             nn.ReLU(inplace=False),
             nn.Linear(64, 128),
             nn.ReLU(inplace=False),
@@ -156,10 +156,11 @@ class PointsResNet(nn.Module):
         self.fc = nn.Linear(512, feature_n)
         # for param in self.fc.parameters():
         #     param.requires_grad = False
-    def forward(self, x):
-        x = x.reshape(-1, 3)
+    def forward(self, x1 ,y):
+        x = torch.cat((x1,y),2)
+        x = x.reshape(-1, 6)
         x = self.resnet(x)
-        x = x.view(x.size(0), -1)
+        x = x.view(x1.size(0),x1.size(1), -1)
         
         x = self.fc(x)
         return x
