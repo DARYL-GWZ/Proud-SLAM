@@ -33,6 +33,7 @@ class ShareData:
         self.__stop_tracking = False
 
         self.__decoder = None
+        self.__points_encoder = None
         self.__voxels = None
         self.__octree = None
         self.__states = None
@@ -51,6 +52,21 @@ class ShareData:
             self.__decoder = deepcopy(decoder)
             # print("========== decoder set ==========")
             sys.stdout.flush()
+    
+    @property
+    def points_encoder(self):
+        with lock:
+            return deepcopy(self.__points_encoder)
+            print("========== decoder get ==========")
+            sys.stdout.flush()
+    
+    @points_encoder.setter
+    def points_encoder(self, points_encoder):
+        with lock:
+            self.__points_encoder = deepcopy(points_encoder)
+            # print("========== decoder set ==========")
+            sys.stdout.flush()
+
 
     @property
     def voxels(self):

@@ -117,18 +117,20 @@ def get_features_vox(samples, map_states, voxel_size):
 
 
 @torch.enable_grad()
-def get_features_pcd(samples, map_states):
+def get_features_pcd(samples, map_states,resnet):
     # encoder states
     point_feats = map_states["voxel_vertex_idx"].cuda()
     point_xyz = map_states["voxel_center_xyz"].cuda()
     values = map_states["voxel_vertex_emb"].cuda()
     pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
-    pointclouds_feature = map_states["pointclouds_feature"].cuda()
+    pointclouds_color = map_states["pointclouds_color"].cuda()
+    pointclouds_feature = resnet(pointclouds_color).cuda()
     
     # print("\033[0;33;40m",'----------------', "\033[0m")
     # print("\033[0;33;40m",'values',values.shape, "\033[0m")
     # print("\033[0;33;40m",'原始pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
     # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'pointclouds_color',pointclouds_color.shape, "\033[0m")
     # print("\033[0;33;40m",'pointclouds_feature',pointclouds_feature.shape, "\033[0m")
     sampled_idx = samples["sampled_point_voxel_idx"].long()
     sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
@@ -307,6 +309,7 @@ def render_rays(
         rays_d,
         map_states,
         sdf_network,
+        resnet,
         step_size,
         voxel_size,
         truncation,
@@ -415,7 +418,7 @@ def render_rays(
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
         # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # with torch.no_grad():
-        chunk_inputs = get_features_pcd(chunk_samples, map_states)
+        chunk_inputs = get_features_pcd(chunk_samples, map_states,resnet)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
@@ -490,6 +493,7 @@ def bundle_adjust_frames(
     keyframe_graph,
     map_states,
     sdf_network,
+    resnet,
     loss_criteria,
     voxel_size,
     step_size,
@@ -540,7 +544,7 @@ def bundle_adjust_frames(
         rays_d = []
         rgb_samples = []
         depth_samples = []
-        print("\033[0;33;40m",'i= ',i , "\033[0m")
+        # print("\033[0;33;40m",'i= ',i , "\033[0m")
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         
         
@@ -578,6 +582,7 @@ def bundle_adjust_frames(
             rays_d,
             map_states,
             sdf_network,
+            resnet,
             step_size,
             voxel_size,
             truncation,
@@ -593,9 +598,9 @@ def bundle_adjust_frames(
         for optim in optimizers:
             optim.zero_grad()
         # print("\033[0;33;40m",'optimizers',optimizers, "\033[0m")
-        print("\033[0;33;40m",'backward', "\033[0m")
-        loss.backward(retain_graph=True)
-        print("\033[0;33;40m",'backward后', "\033[0m")
+        # print("\033[0;33;40m",'backward', "\033[0m")
+        loss.backward()
+        # print("\033[0;33;40m",'backward后', "\033[0m")
 
         # print("\033[0;33;40m",'backward后', "\033[0m")
         for optim in optimizers:
@@ -607,6 +612,7 @@ def track_frame(
     curr_frame,
     map_states,
     sdf_network,
+    resnet,
     loss_criteria,
     voxel_size,
     N_rays=512,
@@ -649,6 +655,7 @@ def track_frame(
             ray_dirs_iter,
             map_states,
             sdf_network,
+            resnet,
             step_size,
             voxel_size,
             truncation,
@@ -674,9 +681,9 @@ def track_frame(
         if iter == 0 and profiler is not None:
             profiler.tick("backward step")
         optim.zero_grad()
-        print("\033[0;33;40m",'tracking backward', "\033[0m")
+        # print("\033[0;33;40m",'tracking backward', "\033[0m")
         loss.backward()
-        print("\033[0;33;40m",'tracking backward后', "\033[0m")
+        # print("\033[0;33;40m",'tracking backward后', "\033[0m")
         
         optim.step()
         if iter == 0 and profiler is not None:

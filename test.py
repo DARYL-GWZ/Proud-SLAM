@@ -340,19 +340,16 @@ class ResBlk(nn.Module):
     """
     resnet block
     """
-
     def __init__(self, ch_in, ch_out):
         """
         :param ch_in:
         :param ch_out:
         """
         super(ResBlk, self).__init__()
-
         self.conv1 = nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(ch_out)
         self.conv2 = nn.Conv2d(ch_out, ch_out, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(ch_out)
-
         self.extra = nn.Sequential()
         if ch_out != ch_in:
             # [b, ch_in, h, w] => [b, ch_out, h, w]
@@ -361,29 +358,20 @@ class ResBlk(nn.Module):
                 nn.BatchNorm2d(ch_out)
             )
 
-
     def forward(self, x):
         """
         :param x: [b, ch, h, w]
         :return:
         """
         out = F.relu(self.bn1(self.conv1(x)))
+        print("\033[0;33;40m",'out',out.shape, "\033[0m")
         out = self.bn2(self.conv2(out))
-        # short cut.
-        # extra module: [b, ch_in, h, w] => [b, ch_out, h, w]
-        # element-wise add:
         out = self.extra(x) + out
-
         return out
 
-
-
-
 class ResNet18(nn.Module):
-
-    def __init__(self):
+    def __init__(self, feature_n):
         super(ResNet18, self).__init__()
-
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16)
@@ -397,81 +385,38 @@ class ResNet18(nn.Module):
         # self.blk3 = ResBlk(128, 256)
         # # [b, 512, h, w] => [b, 1024, h, w]
         # self.blk4 = ResBlk(256, 512)
-
-        self.outlayer = nn.Linear(32*32*32, 10)
+        self.outlayer = nn.Linear(32, feature_n)
 
     def forward(self, x):
         """
         :param x:
         :return:
         """
+        x = x.view(-1, 3, 1,1)
         x = F.relu(self.conv1(x))
-
+        # print("\033[0;33;40m",'x1',x.shape, "\033[0m")
         # [b, 64, h, w] => [b, 1024, h, w]
         x = self.blk1(x)
         x = self.blk2(x)
-        # x = self.blk3(x)
-        # x = self.blk4(x)
-
-        # print(x.shape)
+        # print("\033[0;33;40m",'xx',x.shape, "\033[0m")
         x = x.view(x.size(0), -1)
+        # print("\033[0;33;40m",'xxx',x.shape, "\033[0m")
         x = self.outlayer(x)
-
-
+        x = x.view(-1, 8, x.size(1))
         return x
 
 
 
 def main():
-    # batchsz = 32
-
-    # cifar_train = datasets.CIFAR10('cifar', True, transform=transforms.Compose([
-    #     transforms.Resize((32, 32)),
-    #     transforms.ToTensor()
-    # ]), download=True)
-    # cifar_train = DataLoader(cifar_train, batch_size=batchsz, shuffle=True)
-
-    # cifar_test = datasets.CIFAR10('cifar', False, transform=transforms.Compose([
-    #     transforms.Resize((32, 32)),
-    #     transforms.ToTensor()
-    # ]), download=True)
-    # cifar_test = DataLoader(cifar_test, batch_size=batchsz, shuffle=True)
-
-
-    # x, label = next(iter(cifar_train))
-    # print('x:', x.shape, 'label:', label.shape)
 
     device = torch.device('cuda')
-    # model = Lenet5().to(device)
-    model = ResNet18().to(device)
+    model = ResNet18(16).to(device)
+    x = torch.rand(3000,8,3).to(device)
 
-    criteon = nn.CrossEntropyLoss().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    # print(model)
-
-    # model.train()
-    x = torch.rand(1600, 3,32,32).to(device)
-        # [b, 3, 32, 32]
-        # [b]
-    # x, label = x.to(device), label.to(device)
     print("\033[0;33;40m",'x',x.shape, "\033[0m")
 
     logits = model(x)
     print("\033[0;33;40m",'logits',logits.shape, "\033[0m")
-    
-    # logits: [b, 10]
-    # label:  [b]
-    # loss: tensor scalar
-    # loss = criteon(logits, label)
-
-    # # backprop
-    # optimizer.zero_grad()
-    # loss.backward()
-    # optimizer.step()
-
-
-        #
-        # print(epoch, 'loss:', loss.item())
 
 
 
@@ -480,3 +425,63 @@ def main():
 if __name__ == '__main__':
     main()
     
+# import torch
+# import torch.nn as nn
+# import time
+
+# class BasicBlock(nn.Module):
+#     def __init__(self, in_planes, out_planes, stride=1):
+#         super(BasicBlock, self).__init__()
+#         self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+#         self.bn1 = nn.BatchNorm2d(out_planes)
+#         self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=1, padding=1, bias=False)
+#         self.bn2 = nn.BatchNorm2d(out_planes)
+
+#         self.shortcut = nn.Sequential()
+#         if stride != 1 or in_planes != out_planes:
+#             self.shortcut = nn.Sequential(
+#                 nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False),
+#                 nn.BatchNorm2d(out_planes)
+#             )
+
+#     def forward(self, x):
+#         out = nn.ReLU()(self.bn1(self.conv1(x)))
+#         out = self.bn2(self.conv2(out))
+#         out += self.shortcut(x)
+#         out = nn.ReLU()(out)
+#         return out
+
+
+# class ResNetFeatureExtractor(nn.Module):
+#     def __init__(self, num):
+#         super(ResNetFeatureExtractor, self).__init__()
+#         self.num = num
+#         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+#         self.bn1 = nn.BatchNorm2d(64)
+#         self.layer1 = nn.Sequential(BasicBlock(64, 64), BasicBlock(64, 64))
+#         self.layer2 = nn.Sequential(BasicBlock(64, 128, stride=2), BasicBlock(128, 128))
+#         self.layer3 = nn.Sequential(BasicBlock(128, 256, stride=2), BasicBlock(256, 256))
+#         self.layer4 = nn.Sequential(BasicBlock(256, 512, stride=2), BasicBlock(512, 512))
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Linear(512, num)
+
+#     def forward(self, x):
+#         print("\033[0;33;40m",'x',x.shape, "\033[0m")
+#         out = nn.ReLU()(self.bn1(self.conv1(x)))
+#         out = self.layer1(out)
+#         out = self.layer2(out)
+#         out = self.layer3(out)
+#         out = self.layer4(out)
+#         out = self.avgpool(out)
+#         out = out.view(out.size(0), -1)
+#         out = self.fc(out)
+#         return out
+
+
+# model = ResNetFeatureExtractor(16)
+# start = time.time()
+# image = torch.rand(3000, 8, 3)
+# features = model(image) # 输出: torch.Size([120000, 128])
+# end = time.time()
+# print("\033[0;33;40m",'image',image.shape, "\033[0m")
+# print("\033[0;33;40m",'features',features.shape, "\033[0m")

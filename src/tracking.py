@@ -105,6 +105,8 @@ class Tracking:
     def do_tracking(self, share_data, current_frame, kf_buffer):
         # print("\033[0;33;40m",'share_data',share_data, "\033[0m")
         decoder = share_data.decoder.cuda()
+        points_encoder = share_data.points_encoder.cuda()
+        
         # print("\033[0;33;40m",'xxxxxxxxxxx3', "\033[0m")
         map_states = share_data.states
         # print("\033[0;33;40m",'map_states',map_states.keys(), "\033[0m")
@@ -118,6 +120,7 @@ class Tracking:
             current_frame,
             map_states,
             decoder,
+            points_encoder,
             self.loss_criteria,
             self.voxel_size,
             self.N_rays,
@@ -153,6 +156,7 @@ class Tracking:
         final_outputs = dict()
 
         decoder = share_data.decoder.cuda()
+        points_encoder = share_data.points_encoder.cuda()
         map_states = share_data.states
         for k, v in map_states.items():
             map_states[k] = v.cuda()
@@ -171,6 +175,7 @@ class Tracking:
             rays_d,
             map_states,
             decoder,
+            points_encoder,
             self.step_size,
             self.voxel_size,
             self.sdf_truncation,

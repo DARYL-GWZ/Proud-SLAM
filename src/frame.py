@@ -70,7 +70,7 @@ class RGBDFrame(nn.Module):
         # print("\033[0;33;40m",'vmap',vmap.shape, "\033[0m")
         return vmap[self.depth > 0].reshape(-1, 3)
     
-    @torch.no_grad()
+    # @torch.no_grad()
     def get_color(self):
         # print("\033[0;33;40m",'self.rgb',self.rgb.shape, "\033[0m")
         return self.rgb[self.depth > 0].reshape(-1, 3) 

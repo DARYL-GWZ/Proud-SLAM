@@ -19,10 +19,11 @@ Octree::Octree()
 
 Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, int64_t max_num)
 {
-    std::cout << "octree initialization is OK "   << std::endl;
+    std::cout << "octree initialization is OK !!!!"   << std::endl;
+    // std::cout << "max_num: " << max_num<< std::endl;
     Octant::next_index_ = 0;
     MAX_POINTS_PER_LEAF = max_num;
-    // std::cout << "MAX_POINTS_PER_LEAF000: " << MAX_POINTS_PER_LEAF<< std::endl;
+    // std::cout << "MAX_POINTS_PER_LEAF0002: " << MAX_POINTS_PER_LEAF<< std::endl;
     init(grid_dim, feat_dim, voxel_size,max_num);
     for (auto &pt : all_pts)
     {
@@ -37,7 +38,7 @@ Octree::~Octree()
 void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t max_num)
 {
     MAX_POINTS_PER_LEAF = max_num;
-    // std::cout << "MAX_POINTS_PER_LEAF0: " << MAX_POINTS_PER_LEAF<< std::endl;
+    std::cout << "MAX_POINTS_PER_LEAF0: " << MAX_POINTS_PER_LEAF<< std::endl;
     size_ = grid_dim;
     feat_dim_ = feat_dim;
     voxel_size_ = voxel_size;
@@ -344,7 +345,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     auto leaf_count = node_count.second;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
-    auto all_pointclouds_xyz = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));
+    auto all_pointclouds_xyz = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
     auto all_pointclouds_colors = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
     auto all_children = -torch::ones({total_count, 8}, dtype(torch::kFloat32));
     auto all_features = -torch::ones({total_count, 8}, dtype(torch::kInt32));
@@ -373,23 +374,24 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         //     }
         // std::cout << "MAX_POINTS_PER_LEAF: " << MAX_POINTS_PER_LEAF<< std::endl;
 
-        std::vector<std::array<float, 4>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0,0});
+        std::vector<std::array<float, 3>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
         std::vector<std::array<float, 3>> color_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
         
             // || node_ptr->side_ == size_
-        if (node_ptr->side_ == size_){
-            auto xyz_ = decode(node_ptr->code_);
-            for (int i = 0; i < 8 ; i++) {
-                    xyz_array[i][0]=xyz_[0];
-                    xyz_array[i][1]=xyz_[1];
-                    xyz_array[i][2]=xyz_[2];
-                    xyz_array[i][3]=float(node_ptr->side_);
-                // if(flag4 < 5){
-                //     std::cout << "node_ptr->side_4: " << node_ptr->side_<< "  flag4: " << flag4 << std::endl;
-                //     flag4 ++;
-                // }
-            }
-        }
+        // if (node_ptr->side_ == size_){
+        //     auto xyz_ = decode(node_ptr->code_);
+        //     for (int i = 0; i < MAX_POINTS_PER_LEAF ; i++) {
+                    
+        //             xyz_array[i][0]=(xyz_[0] + float(node_ptr->side_) / 2) * 0.2
+        //             xyz_array[i][1]=(xyz_[1] + float(node_ptr->side_) / 2) * 0.2
+        //             xyz_array[i][2]=(xyz_[2] + float(node_ptr->side_) / 2) * 0.2
+
+        //         // if(flag4 < 5){
+        //         //     std::cout << "node_ptr->side_4: " << node_ptr->side_<< "  flag4: " << flag4 << std::endl;
+        //         //     flag4 ++;
+        //         // }
+        //     }
+        // }
 
         for (int i = 0; i < node_ptr->point_data_x.size(); i++) {
             auto x_ = node_ptr->point_data_x[i];
@@ -398,16 +400,16 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
             xyz_array[i][0]=x_;
             xyz_array[i][1]=y_;
             xyz_array[i][2]=z_;
-            xyz_array[i][3]=float(node_ptr->side_);
+            // xyz_array[i][3]=float(node_ptr->side_);
             auto color_ = hilbert_decode(node_ptr->point_data_color[i]);
             // std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
             color_array[i][0]=color_[0];
             color_array[i][1]=color_[1];
             color_array[i][2]=color_[2];
-            if(flag5 < 5){
-                std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
-                flag5 ++;
-            }
+            // if(flag5 < 5){
+            //     std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
+            //     flag5 ++;
+            // }
         }
         // std::cout << "Finish"<< std::endl;
 
@@ -420,7 +422,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         // }
         // std::cout << "xyz_array" << xyz_array<< std::endl;
 
-        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));
+        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
         all_pointclouds_xyz[node_ptr->index_] = pc_position;
 
         auto pc_rgb = torch::from_blob(color_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));

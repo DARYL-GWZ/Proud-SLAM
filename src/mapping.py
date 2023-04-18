@@ -95,26 +95,26 @@ class Mapping:
         
         while True:
             # torch.cuda.empty_cache()
-            print("\033[0;33;40m",'kf_buffer.empty()1',kf_buffer.empty(), "\033[0m")      
+            # print("\033[0;33;40m",'kf_buffer.empty()1',kf_buffer.empty(), "\033[0m")      
             if not kf_buffer.empty():
                 tracked_frame = kf_buffer.get()
 
                 if not self.initialized:
                     if self.mesher is not None:
                         self.mesher.rays_d = tracked_frame.get_rays()
-                    print("\033[0;33;40m",'initialization', "\033[0m")      
+                    # print("\033[0;33;40m",'initialization', "\033[0m")      
                     self.create_voxels_pointcloud(tracked_frame)
                     # self.create_pointcloud(tracked_frame)
                     self.insert_keyframe(tracked_frame)
-                    print("\033[0;33;40m",'kf_buffer.empty()',kf_buffer.empty(), "\033[0m")      
+                    # print("\033[0;33;40m",'kf_buffer.empty()',kf_buffer.empty(), "\033[0m")      
                     while kf_buffer.empty():
-                        print("\033[0;33;40m",'initialization2', "\033[0m")      
+                        # print("\033[0;33;40m",'initialization2', "\033[0m")      
                         self.do_mapping(share_data)
-                        print("\033[0;33;40m",'initialization3', "\033[0m")      
+                        # print("\033[0;33;40m",'initialization3', "\033[0m")      
                         # self.update_share_data(share_data, tracked_frame.stamp)
                     self.initialized = True
                 else:
-                    print("\033[0;33;40m",'initialization后', "\033[0m")      
+                    # print("\033[0;33;40m",'initialization后', "\033[0m")      
                     self.do_mapping(share_data, tracked_frame)
                     self.create_voxels_pointcloud(tracked_frame)
                     # self.create_pointcloud(tracked_frame)
@@ -166,7 +166,7 @@ class Mapping:
     ):
         # self.map.create_voxels(self.keyframe_graph[0])
         self.decoder.train()
-        # self.points_encoder.train()
+        self.points_encoder.train()
         
         # 选择要ba优化的关键帧序列
         optimize_targets = self.select_optimize_targets(tracked_frame)
@@ -176,6 +176,7 @@ class Mapping:
             optimize_targets,
             self.map_states,
             self.decoder,
+            self.points_encoder,
             self.loss_criteria,
             self.voxel_size,
             self.step_size,
@@ -213,6 +214,8 @@ class Mapping:
 
     def update_share_data(self, share_data, frameid=None):
         share_data.decoder = deepcopy(self.decoder).cpu()
+        share_data.points_encoder = deepcopy(self.points_encoder).cpu()
+        
         tmp_states = {}
         for k, v in self.map_states.items():
             tmp_states[k] = v.detach().cpu()
@@ -264,7 +267,7 @@ class Mapping:
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
-        print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
+        # print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
         # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
         # pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         # 将节点坐标从体素顶点移到体素中心
@@ -274,11 +277,11 @@ class Mapping:
         pcd_color = pcd_color.cuda()
         # print("\033[0;33;40m",'resnet',self.points_encoder.fc.weight.grad, "\033[0m")
         
-        pcd_features = self.points_encoder(pcd_color).cuda()
+        # pcd_features = self.points_encoder(pcd_color).requires_grad_(True).cuda()
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
-        pcd_xyz = pcd_xyz[:,:,:3].cuda().float()
+        pcd_xyz = pcd_xyz.cuda().float()
         # pcd_features = pcd_features.cuda().float()
         
         # print("\033[0;33;40m",'===============', "\033[0m")
@@ -298,7 +301,7 @@ class Mapping:
         map_states["voxel_vertex_emb"] = self.embeddings
         map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
-        map_states["pointclouds_feature"] = pcd_features
+        # map_states["pointclouds_feature"] = pcd_features
         # print("\033[0;33;40m",'===============', "\033[0m")
         # np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
         # np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
