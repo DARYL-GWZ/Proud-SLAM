@@ -1,12 +1,26 @@
 #include <memory>
 #include <torch/script.h>
 #include <torch/custom_class.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
 
 enum OcType
 {
     NONLEAF = -1,
     SURFACE = 0,
     FEATURE = 1
+};
+
+struct Point3 {
+    double x, y, z;
+};
+
+// 定义子空间
+struct Subspace {
+    Point3 center;
+    double length;
+    Point3 point;
 };
 
 class Octant : public torch::CustomClassHolder
@@ -21,6 +35,7 @@ public:
         is_leaf_ = false;
         children_mask_ = 0;
         type_ = NONLEAF;
+        // centre_ = 0;
         // point_data_xyz = 0;
         // point_data_color = 0;
 
@@ -51,6 +66,7 @@ public:
     std::vector<float> point_data_y; 
     std::vector<float> point_data_z; 
     std::vector<float> point_data_color; 
+    std::vector<Subspace> subspaces_;
     // std::vector<long long> point_data_pcd; 
 
     // torch::Tensor point_xyz;
@@ -105,7 +121,8 @@ public:
 
     // test intersections
     bool has_voxel(torch::Tensor pose);
-
+    bool isInSubspace(Point3 point, Subspace subspace);
+    std::vector<Subspace> divideSpace(Point3 center, double length);
     // query features
     torch::Tensor get_features(torch::Tensor pts);
 
@@ -125,7 +142,7 @@ public:
     int64_t count_leaf_nodes();
     // int64_t leaves_count_recursive(std::shared_ptr<Octant> n);
     int64_t leaves_count_recursive(Octant *n);
-
+    
     // get voxel centres and childrens
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
 

@@ -244,8 +244,11 @@ class Mapping:
         # np.savetxt('colors.txt', colors.cpu().numpy())
         # np.savetxt('points.txt', points.cpu().numpy())
         # np.savetxt('voxels2.txt', voxels.cpu().numpy())
-
+        # print("\033[0;33;40m",'===============', "\033[0m")
+        voxels = voxels[:1, :3]
+        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
+        # print("\033[0;33;40m",'======222======', "\033[0m")
 
         self.update_grid_pcd_features()
 
@@ -255,8 +258,8 @@ class Mapping:
     @torch.enable_grad()
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
-        # print("\033[0;33;40m",'===============', "\033[0m")
-        # np.savetxt('voxels.txt', voxels.cpu().numpy())
+        print("\033[0;33;40m",'===============', "\033[0m")
+        np.savetxt('voxels.txt', voxels.cpu().numpy())
         # np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
         # np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
         # np.savetxt('pcd_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())
@@ -303,19 +306,19 @@ class Mapping:
         map_states["pointclouds_color"] = pcd_color
         # map_states["pointclouds_feature"] = pcd_features
         # print("\033[0;33;40m",'===============', "\033[0m")
-        # np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
-        # np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
-        # np.savetxt('pcd_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())
+        np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
+        np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
+        np.savetxt('pcd_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())
         # np.savetxt('pcd_xyz3.txt', pcd_xyz[:,3,:].cpu().numpy())
         # np.savetxt('pcd_xyz4.txt', pcd_xyz[:,4,:].cpu().numpy())
         # np.savetxt('pcd_xyz5.txt', pcd_xyz[:,5,:].cpu().numpy())
         # np.savetxt('pcd_xyz6.txt', pcd_xyz[:,6,:].cpu().numpy())
         # np.savetxt('pcd_xyz7.txt', pcd_xyz[:,7,:].cpu().numpy())
-        # np.savetxt('centres.txt', centres.cpu().numpy())
+        np.savetxt('centres.txt', centres.cpu().numpy())
         
         # np.savetxt('pcd_features.txt', pcd_features[:,2,:].detach().cpu().numpy())
         # np.savetxt('centres.txt', centres.cpu().numpy())
-        # print("\033[0;33;40m",'----------------', "\033[0m")
+        print("\033[0;33;40m",'----------------', "\033[0m")
         # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
         # print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")

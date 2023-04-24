@@ -151,8 +151,8 @@ def get_features_pcd(samples, map_states,resnet):
     sampled_dis = samples["sampled_point_distance"]
     
     # print("\033[0;33;40m",'pointclouds_feature',pointclouds_feature.shape, "\033[0m")
-    xyz_list = []
-    feats_list = []
+    # xyz_list = []
+    # feats_list = []
     # print("1:{}".format(torch.cuda.memory_allocated(0)))
 
     # for i in range(pointclouds_xyz.shape[1]):
@@ -173,8 +173,11 @@ def get_features_pcd(samples, map_states,resnet):
     print("\033[0;33;40m",'======pcd======', "\033[0m")
     print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
     print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
+    print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
     np.savetxt('pcd_xyz.txt', pcd_xyz.detach().cpu().numpy())
     np.savetxt('pcd_feats.txt', pcd_feats.detach().cpu().numpy())
+    np.savetxt('sampled_xyz.txt', sampled_xyz.detach().cpu().numpy())
+    
     # print("\033[0;33;40m",'-------------', "\033[0m")
     
     # pcd_feats = F.embedding(F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1)), values)
@@ -443,10 +446,10 @@ def render_rays(
             profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
-        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # with torch.no_grad():
         chunk_inputs = get_features_pcd(chunk_samples, map_states,resnet)
-        sleep(1000)
+        # sleep(1000)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
