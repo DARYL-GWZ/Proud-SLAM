@@ -105,8 +105,8 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
     auto points = pts.accessor<int, 2>();
     auto colors = color.accessor<int, 2>();
     auto pcds = pcd.accessor<float, 2>();
-    // int flag1 = 1;
-    // int flag2 = 1;
+    int flag1 = 1;
+    int flag2 = 1;
     if (points.size(1) != 3)
     {
         std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
@@ -124,16 +124,16 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
     }
     for (int i = 0; i < points.size(0); ++i)
     {
-        // for (int j = 0; j < 8; ++j)
-        // {
-            // int x = points[i][0] + incr_x[j];
-            // int y = points[i][1] + incr_y[j];
-            // int z = points[i][2] + incr_z[j];
-            int x = points[i][0];
-            int y = points[i][1];
-            int z = points[i][2];
+        for (int j = 0; j < 8; ++j)
+        {
+            int x = points[i][0] + incr_x[j];
+            int y = points[i][1] + incr_y[j];
+            int z = points[i][2] + incr_z[j];
+            // int x = points[i][0] ;
+            // int y = points[i][1] ;
+            // int z = points[i][2] ;
             uint64_t key = encode(x, y, z);
-            int j = 0;
+            // int j = 0;
             all_keys.insert(key);
             const unsigned int shift = MAX_BITS - max_level_ - 1;
             auto n = root_;
@@ -275,7 +275,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                 }
             n = tmp;
             }
-        // }
+        }
     }
 }
 

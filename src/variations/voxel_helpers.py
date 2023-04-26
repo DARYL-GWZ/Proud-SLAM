@@ -88,7 +88,13 @@ class AABBRayIntersect(Function):
 
 aabb_ray_intersect = AABBRayIntersect.apply
 
-
+# pts_idx, min_depth, max_depth = svo_ray_intersect(
+#     voxel_size = 0.2,
+#     max_hits_temp = 50,
+#     flatten_centers,
+#     flatten_children,
+#     ray_start [1024,3],
+#     ray_dir[1024,3])
 class SparseVoxelOctreeRayIntersect(Function):
     @staticmethod
     def forward(ctx, voxelsize, n_max, points, children, ray_start, ray_dir):

@@ -242,54 +242,54 @@
 # features 表示点云特征数据
 # 函数首先计算每个采样点和每个点云的距离，然后基于距离计算每个点云对采样点的权重
 # 最后将权重与特征值相乘并求和，得到采样点的特征
-import  torch
-import time
-import numpy as np
-def compute_sample_features(sample, positions, features):
-    """
-    Computes features for the given sample points based on positions and features of the point cloud.
-    :param sample: Tensor of shape (M, 3) representing the coordinates of M sample points.
-    :param positions: Tensor of shape (M, N, 3) representing the coordinates of N points in M voxels.
-    :param features: Tensor of shape (M, N, 64) representing the features of N points in M voxels.
-    :return: Tensor of shape (M, 64) representing the features of M sample points.
-    """
-    M, N = positions.shape[:2]
+# import  torch
+# import time
+# import numpy as np
+# def compute_sample_features(sample, positions, features):
+#     """
+#     Computes features for the given sample points based on positions and features of the point cloud.
+#     :param sample: Tensor of shape (M, 3) representing the coordinates of M sample points.
+#     :param positions: Tensor of shape (M, N, 3) representing the coordinates of N points in M voxels.
+#     :param features: Tensor of shape (M, N, 64) representing the features of N points in M voxels.
+#     :return: Tensor of shape (M, 64) representing the features of M sample points.
+#     """
+#     M, N = positions.shape[:2]
 
-    # Compute distances between sample points and voxel points
+#     # Compute distances between sample points and voxel points
     
-    # print("\033[0;33;40m",'sample.unsqueeze(1) - positions',(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1)).shape, "\033[0m")
-    distances = torch.sqrt(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1))  # Shape: (M, N)
+#     # print("\033[0;33;40m",'sample.unsqueeze(1) - positions',(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1)).shape, "\033[0m")
+#     distances = torch.sqrt(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1))  # Shape: (M, N)
     
-    # print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
-    # Compute weights based on distances.
-    # np.savetxt('test_distances.txt', distances.detach().cpu().numpy())
-    print("\033[0;33;40m",'distances',distances, "\033[0m")
-    weights = torch.softmax(-(distances*distances), dim=-1)  # Shape: (M, N)
-    print("\033[0;33;40m",'weights',weights, "\033[0m")
+#     # print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
+#     # Compute weights based on distances.
+#     # np.savetxt('test_distances.txt', distances.detach().cpu().numpy())
+#     print("\033[0;33;40m",'distances',distances, "\033[0m")
+#     weights = torch.softmax(-(distances*distances), dim=-1)  # Shape: (M, N)
+#     print("\033[0;33;40m",'weights',weights, "\033[0m")
     
-    # print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
-    # print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
-    # print("\033[0;33;40m",'features',features.shape, "\033[0m")
-    # Compute weighted average of features.
-    sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
+#     # print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
+#     # print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
+#     # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+#     # Compute weighted average of features.
+#     sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
 
-    return sample_features
+#     return sample_features
 
 # start = time.time()
-feature = torch.tensor([[[1,8,3,2,4,111],[1,8,3,2,4,5],
-                         [1,8,3,2,4,5],[1,8,3,2,4,5],
-                         [1,8,3,2,4,5],[1,8,3,2,4,5],
-                         [1,8,3,2,4,5],[1,8,3,2,4,5]]]).float()
-positions = torch.tensor([[[1,8,5],[1,8,4],[1,8,3],
-                           [1,8,3],[1,8,3],[1,8,3],
-                           [1,8,3],[1,8,3]]]).float()
-sample = torch.tensor([[1,8,3]]).float()
-print("\033[0;33;40m",'feature',feature.shape, "\033[0m")
-print("\033[0;33;40m",'positions',positions.shape, "\033[0m")
-print("\033[0;33;40m",'sample',sample.shape, "\033[0m")
-features = compute_sample_features(sample,positions, feature)
-print("\033[0;33;40m",'sample features',features.shape, "\033[0m")
-print("\033[0;33;40m",'sample features',features, "\033[0m")
+# feature = torch.tensor([[[1,8,3,2,4,111],[1,8,3,2,4,5],
+#                          [1,8,3,2,4,5],[1,8,3,2,4,5],
+#                          [1,8,3,2,4,5],[1,8,3,2,4,5],
+#                          [1,8,3,2,4,5],[1,8,3,2,4,5]]]).float()
+# positions = torch.tensor([[[1,8,5],[1,8,4],[1,8,3],
+#                            [1,8,3],[1,8,3],[1,8,3],
+#                            [1,8,3],[1,8,3]]]).float()
+# sample = torch.tensor([[1,8,3]]).float()
+# print("\033[0;33;40m",'feature',feature.shape, "\033[0m")
+# print("\033[0;33;40m",'positions',positions.shape, "\033[0m")
+# print("\033[0;33;40m",'sample',sample.shape, "\033[0m")
+# features = compute_sample_features(sample,positions, feature)
+# print("\033[0;33;40m",'sample features',features.shape, "\033[0m")
+# print("\033[0;33;40m",'sample features',features, "\033[0m")
 
 
 
@@ -509,3 +509,45 @@ print("\033[0;33;40m",'sample features',features, "\033[0m")
 # end = time.time()
 # print("\033[0;33;40m",'image',image.shape, "\033[0m")
 # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+
+# import numpy as np
+
+# def positional_encoding_3d(x, y, z, d):
+#     pos = np.array([x, y, z])
+#     encoding = np.zeros((d))
+#     print("\033[0;33;40m",'encoding',encoding.shape, "\033[0m")
+    
+#     for i in range(d//2):
+#         encoding[2*i] = np.sum(np.sin(np.dot(pos, 1/10000**(2*i/d))))
+#         encoding[2*i+1] = np.sum(np.cos(np.dot(pos, 1/10000**(2*i/d))))
+#     return encoding
+
+# # 示例代码
+# d = 8  # 编码向量的维度
+# x, y, z = 10, 20, 30  # 三维位置
+# encoding = positional_encoding_3d(x, y, z, d)
+# print(encoding)
+
+import torch
+
+def encoding_3d(pos, d):
+    encoding = torch.zeros(pos.shape[0],pos.shape[1],d)
+    # print("\033[0;33;40m",'encoding',encoding.shape, "\033[0m")
+    for i in range(d//2):
+        x = 1/10000**(2*i/d)
+        encoding[:,:,2*i] = torch.sum(torch.sin(pos * x),dim = -1)
+        encoding[:,:,2*i+1] = torch.sum(torch.cos(pos * x),dim = -1)
+    return encoding
+
+d = 16 # 编码向量的维度
+# x, y, z = 10, 20, 30  # 三维位置
+pos = torch.tensor([[[1,2,3],
+                   [1,2,4],
+                   [1,2,5],
+                   [1,2,6],
+                   [1,2,7],
+                   [1,2,6],
+                   [1,2,6],
+                   [1,2,6]]])
+encoding = encoding_3d(pos, d)
+print(encoding)

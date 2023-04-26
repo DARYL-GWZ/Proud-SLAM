@@ -158,7 +158,7 @@ class PointsResNet(nn.Module):
         #     param.requires_grad = False
     def forward(self, x1 ,y):
         x = torch.cat((x1,y),2)
-        x = x.reshape(-1, 6)
+        x = x.reshape(-1, x.shape[2])
         x = self.resnet(x)
         x = x.view(x1.size(0),x1.size(1), -1)
         

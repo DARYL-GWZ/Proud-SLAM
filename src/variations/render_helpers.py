@@ -46,8 +46,8 @@ def trilinear_interp(p, q, point_feats):
     weights = (p * q + (1 - p) * (1 - q)).prod(dim=-1, keepdim=True)
     if point_feats.dim() == 2:
         point_feats = point_feats.view(point_feats.size(0), 8, -1)
-    print("\033[0;33;40m",'weights_vox',weights.shape, "\033[0m")
-    np.savetxt('weights_vox.txt', weights[:,:,0].detach().cpu().numpy())
+    # print("\033[0;33;40m",'weights_vox',weights.shape, "\033[0m")
+    # np.savetxt('weights_vox.txt', weights[:,:,0].detach().cpu().numpy())
     
     point_feats = (weights * point_feats).sum(1)
     return point_feats
@@ -115,6 +115,7 @@ def get_features_vox(samples, map_states, voxel_size):
     print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     np.savetxt('point_xyz.txt', point_xyz.detach().cpu().numpy())
     np.savetxt('point_feats.txt', point_feats.detach().cpu().numpy())
+    
     # print("\033[0;33;40m",'F.embedding(sampled_idx, point_feats)',F.embedding(sampled_idx, point_feats).shape, "\033[0m")
     # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
@@ -122,6 +123,7 @@ def get_features_vox(samples, map_states, voxel_size):
     feats = get_embeddings_vox(sampled_xyz, point_xyz, point_feats, voxel_size)
     # print("\033[0;33;40m",'feats',feats.shape, "\033[0m")
     # print("\033[0;33;40m",'----vox----', "\033[0m")
+    
     np.savetxt('feats_vox.txt', feats.detach().cpu().numpy())
     print("\033[0;33;40m",'feats_vox',feats.shape, "\033[0m")
     print("\033[0;33;40m",'=====vox======', "\033[0m")
@@ -129,6 +131,15 @@ def get_features_vox(samples, map_states, voxel_size):
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
 
+@torch.enable_grad()
+def encoding_3d(pos, d):
+    encoding = torch.zeros(pos.shape[0],pos.shape[1],d)
+    # print("\033[0;33;40m",'encoding',encoding.shape, "\033[0m")
+    for i in range(d//2):
+        x = 1/10000**(2*i/d)
+        encoding[:,:,2*i] = torch.sum(torch.sin(pos * x),dim = -1)
+        encoding[:,:,2*i+1] = torch.sum(torch.cos(pos * x),dim = -1)
+    return encoding
 
 @torch.enable_grad()
 def get_features_pcd(samples, map_states,resnet):
@@ -138,6 +149,8 @@ def get_features_pcd(samples, map_states,resnet):
     values = map_states["voxel_vertex_emb"].cuda()
     pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
     pointclouds_color = map_states["pointclouds_color"].cuda()
+    # pcds_xyz = encoding_3d(pointclouds_xyz,8).cuda()
+    # pcds_color = encoding_3d(pointclouds_color,8).cuda()
     pointclouds_feature = resnet(pointclouds_xyz, pointclouds_color).cuda()
     
     # print("\033[0;33;40m",'----------------', "\033[0m")
@@ -170,13 +183,13 @@ def get_features_pcd(samples, map_states,resnet):
     
     pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
     pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
-    print("\033[0;33;40m",'======pcd======', "\033[0m")
-    print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
-    print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
-    np.savetxt('pcd_xyz.txt', pcd_xyz.detach().cpu().numpy())
-    np.savetxt('pcd_feats.txt', pcd_feats.detach().cpu().numpy())
-    np.savetxt('sampled_xyz.txt', sampled_xyz.detach().cpu().numpy())
+    # print("\033[0;33;40m",'======pcd======', "\033[0m")
+    # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
+    # np.savetxt('pcd_xyz.txt', pcd_xyz.detach().cpu().numpy())
+    # np.savetxt('pcd_feats.txt', pcd_feats.detach().cpu().numpy())
+    # np.savetxt('sampled_xyz.txt', sampled_xyz.detach().cpu().numpy())
     
     # print("\033[0;33;40m",'-------------', "\033[0m")
     
@@ -187,11 +200,11 @@ def get_features_pcd(samples, map_states,resnet):
     
     feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
     # print("\033[0;33;40m",'===============', "\033[0m")
-    np.savetxt('feats_pcd.txt', feats.detach().cpu().numpy())
-    print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
+    # np.savetxt('feats_pcd.txt', feats.detach().cpu().numpy())
+    # print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
 
     # print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
-    print("\033[0;33;40m",'-----pcd-----', "\033[0m")
+    # print("\033[0;33;40m",'-----pcd-----', "\033[0m")
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
 
@@ -210,15 +223,15 @@ def get_embeddings_pcd(sample, positions, features):
     distances = torch.sqrt(torch.sum((sample.unsqueeze(1) - positions) ** 2, dim=-1))  # Shape: (M, N)
     # print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
     # Compute weights based on distances.
-    np.savetxt('distances.txt', distances.detach().cpu().numpy())
-    print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
-    weights = torch.softmax(-(distances*distances), dim=-1)  # Shape: (M, N)
+    # np.savetxt('distances.txt', distances.detach().cpu().numpy())
+    # print("\033[0;33;40m",'distances',distances.shape, "\033[0m")
+    weights = torch.softmax(-(distances*distances*distances), dim=-1)  # Shape: (M, N)
     # print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
     # print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
     # print("\033[0;33;40m",'features',features.shape, "\033[0m")
     # Compute weighted average of features.
-    np.savetxt('weights_pcd.txt', weights.detach().cpu().numpy())
-    print("\033[0;33;40m",'weights_pcd',weights.shape, "\033[0m")
+    # np.savetxt('weights_pcd.txt', weights.detach().cpu().numpy())
+    # print("\033[0;33;40m",'weights_pcd',weights.shape, "\033[0m")
     sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
     return sample_features
 
@@ -361,7 +374,14 @@ def render_rays(
     intersections, hits = ray_intersect_vox(
         rays_o, rays_d, centres,
         childrens, voxel_size, max_voxel_hit, max_distance)
-  
+    # 一共1024根光线
+    # ---------rays_o torch.Size([1, 1024, 3]) 
+    # ---------rays_d torch.Size([1, 1024, 3])
+    # intersections["min_depth"]对应穿过体素的起点位置 [1, 1024, 9]
+    # intersections["max_depth"]对应穿过体素的终点位置 [1, 1024, 9]
+    # intersections["intersected_voxel_idx"]对应穿过体素的index [1, 1024, 9]
+    # hits对应每根光线是否有效，为true或false [1, 1024]
+   
     if profiler is not None:
         profiler.tok("ray_intersect")
     assert(hits.sum() > 0)
@@ -375,11 +395,14 @@ def render_rays(
     # the ray after hit test, remove the hole or too far item-------------
     rays_o = rays_o[ray_mask].reshape(-1, 3)
     rays_d = rays_d[ray_mask].reshape(-1, 3)
-    # print("\033[0;33;40m",'rays_o',rays_o.shape, "\033[0m")
+    # ---------rays_o torch.Size([1024, 3]) 
+    # ---------rays_d torch.Size([1024, 3])
+    
     if profiler is not None:
         profiler.tick("ray_sample")
     # sample configure caculation------计算各个ray上采样点的深度和有效采样点
-    # print("\033[0;33;40m",'rays_o',samples.shape, "\033[0m")
+    # 根据光线和体素的碰撞，在体素中进行采样
+    # intersections为经过碰撞检测后的每条光线经过体素的最大和最小深度，和光线穿过的index
     samples = ray_sample(intersections, step_size=step_size)
    
     if profiler is not None:
@@ -387,9 +410,14 @@ def render_rays(
     # sample configure caculation 计算光线上各个采样点的深度和索引有效值
     sampled_depth = samples['sampled_point_depth']
     sampled_idx = samples['sampled_point_voxel_idx'].long()
+    # ---------sampled_depth torch.Size([1024, 57]) 
+    # ---------sampled_idx torch.Size([1024, 57]) 
     # only compute when the rays hits  [1017, 60]
     sample_mask = sampled_idx.ne(-1)
 
+    
+    # ---------rays_o torch.Size([1024, 3]) 
+    # ---------rays_d torch.Size([1024, 3])
     # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_idx',sampled_idx[0,:], "\033[0m")
     # print("\033[0;33;40m",'sampled_depth',sampled_depth.shape, "\033[0m")
@@ -409,10 +437,9 @@ def render_rays(
     sampled_dir = sampled_dir / \
         (torch.norm(sampled_dir, 2, -1, keepdim=True) + 1e-8)
     # caculate the final sampled point's position and direction
-    # sampled_depth torch.Size([1024, 57]) 
-    # sampled_idx torch.Size([1024, 57]) 
-    # sampled_xyz torch.Size([1024, 57, 3]) 
-    # sampled_dir torch.Size([1024, 57, 3]) 
+
+    # ---------sampled_xyz torch.Size([1024, 57, 3]) 
+    # ---------sampled_dir torch.Size([1024, 57, 3]) 
     # print("\033[0;33;40m",'sampled_xyz',sampled_xyz.shape, "\033[0m")
     # print("\033[0;33;40m",'sampled_dir',sampled_dir.shape, "\033[0m")
     
@@ -449,7 +476,7 @@ def render_rays(
         # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # with torch.no_grad():
         chunk_inputs = get_features_pcd(chunk_samples, map_states,resnet)
-        # sleep(1000)
+        # sleep(500)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
@@ -625,7 +652,7 @@ def bundle_adjust_frames(
 
         loss, _ = loss_criteria(
             final_outputs, (rgb_samples, depth_samples))
-        print("\033[0;33;40m",'loss',loss, "\033[0m")
+        # print("\033[0;33;40m",'loss',loss, "\033[0m")
         # with torch.autograd.set_detect_anomaly(True):
         # writer.add_scalar('loss', i**2, global_step=i)
         for optim in optimizers:
