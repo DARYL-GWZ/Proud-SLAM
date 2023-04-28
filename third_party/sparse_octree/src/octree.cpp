@@ -124,16 +124,16 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
     }
     for (int i = 0; i < points.size(0); ++i)
     {
-        // for (int j = 0; j < 8; ++j)
-        // {
-            // int x = points[i][0] + incr_x[j];
-            // int y = points[i][1] + incr_y[j];
-            // int z = points[i][2] + incr_z[j];
-            int x = points[i][0];
-            int y = points[i][1];
-            int z = points[i][2];
+        for (int j = 0; j < 8; ++j)
+        {
+            int x = points[i][0] + incr_x[j];
+            int y = points[i][1] + incr_y[j];
+            int z = points[i][2] + incr_z[j];
+            // int x = points[i][0];
+            // int y = points[i][1];
+            // int z = points[i][2];
             uint64_t key = encode(x, y, z);
-            int j = 0;
+            // int j = 0;
             all_keys.insert(key);
             const unsigned int shift = MAX_BITS - max_level_ - 1;
             auto n = root_;
@@ -234,7 +234,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                         tmp->type_ = SURFACE;
 
                     // if (tmp->is_leaf_) {
-                    if (tmp->point_data_color.size() < MAX_POINTS_PER_LEAF ){
+                    if (tmp->point_data_color.size()  < MAX_POINTS_PER_LEAF ){
                         // std::cout << "6"  << std::endl;
                         for(int k=0; k<8; k++) {
                             
@@ -275,7 +275,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                 }
             n = tmp;
             }
-        // }
+        }
     }
 }
 

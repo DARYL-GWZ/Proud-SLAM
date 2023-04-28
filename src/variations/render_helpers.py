@@ -110,11 +110,11 @@ def get_features_vox(samples, map_states, voxel_size):
     point_feats = F.embedding(F.embedding(
         sampled_idx, point_feats), values).view(point_xyz.size(0), -1)
     
-    print("\033[0;33;40m",'----vox----', "\033[0m")
-    print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
-    print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
-    np.savetxt('point_xyz.txt', point_xyz.detach().cpu().numpy())
-    np.savetxt('point_feats.txt', point_feats.detach().cpu().numpy())
+    # print("\033[0;33;40m",'----vox----', "\033[0m")
+    # print("\033[0;33;40m",'point_xyz',point_xyz.shape, "\033[0m")
+    # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
+    # np.savetxt('point_xyz.txt', point_xyz.detach().cpu().numpy())
+    # np.savetxt('point_feats.txt', point_feats.detach().cpu().numpy())
     
     # print("\033[0;33;40m",'F.embedding(sampled_idx, point_feats)',F.embedding(sampled_idx, point_feats).shape, "\033[0m")
     # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
@@ -124,9 +124,9 @@ def get_features_vox(samples, map_states, voxel_size):
     # print("\033[0;33;40m",'feats',feats.shape, "\033[0m")
     # print("\033[0;33;40m",'----vox----', "\033[0m")
     
-    np.savetxt('feats_vox.txt', feats.detach().cpu().numpy())
-    print("\033[0;33;40m",'feats_vox',feats.shape, "\033[0m")
-    print("\033[0;33;40m",'=====vox======', "\033[0m")
+    # np.savetxt('feats_vox.txt', feats.detach().cpu().numpy())
+    # print("\033[0;33;40m",'feats_vox',feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'=====vox======', "\033[0m")
     
     inputs = {"dists": sampled_dis, "emb": feats}
     return inputs
@@ -142,16 +142,18 @@ def encoding_3d(pos, d):
     return encoding
 
 @torch.enable_grad()
-def get_features_pcd(samples, map_states,resnet):
+def get_features_pcd(samples, map_states, resnet):
     # encoder states
-    point_feats = map_states["voxel_vertex_idx"].cuda()
-    point_xyz = map_states["voxel_center_xyz"].cuda()
-    values = map_states["voxel_vertex_emb"].cuda()
+    # point_feats = map_states["voxel_vertex_idx"].cuda()
+    # point_xyz = map_states["voxel_center_xyz"].cuda()
+    # values = map_states["voxel_vertex_emb"].cuda()
     pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
     pointclouds_color = map_states["pointclouds_color"].cuda()
     # pcds_xyz = encoding_3d(pointclouds_xyz,8).cuda()
     # pcds_color = encoding_3d(pointclouds_color,8).cuda()
-    pointclouds_feature = resnet(pointclouds_xyz, pointclouds_color).cuda()
+    # print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
+    # pointclouds_feature = resnet(pointclouds_xyz, pointclouds_color)
+    # print("\033[0;33;40m",'pointclouds_feature',pointclouds_feature.shape, "\033[0m")
     
     # print("\033[0;33;40m",'----------------', "\033[0m")
     # print("\033[0;33;40m",'values',values.shape, "\033[0m")
@@ -182,7 +184,11 @@ def get_features_pcd(samples, map_states,resnet):
 
     
     pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
-    pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
+    pcd_color = F.embedding(sampled_idx, pointclouds_color.reshape(pointclouds_color.shape[0],-1))
+    # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
+    pcd_feats = resnet(pcd_xyz.reshape(-1,8,3), pcd_color.reshape(-1,8,3))
+    
+    # pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
     # print("\033[0;33;40m",'======pcd======', "\033[0m")
     # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
     # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
@@ -473,10 +479,14 @@ def render_rays(
             profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
+        # print("\033[0;33;40m",'=====123===', "\033[0m")
         # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # print("\033[0;33;40m",'=====789===', "\033[0m")
+        
         # with torch.no_grad():
-        chunk_inputs = get_features_pcd(chunk_samples, map_states,resnet)
+        chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
         # sleep(500)
+        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
         if profiler is not None:
