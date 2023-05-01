@@ -10,6 +10,7 @@ from variations.render_helpers import fill_in, render_rays, track_frame
 
 class Tracking:
     def __init__(self, args, data_stream, logger, vis, **kwargs):
+        print("\033[0;33;40m",'traciking初始化', "\033[0m")
         self.args = args
         self.last_frame_id = 0
         self.last_frame = None

@@ -108,7 +108,7 @@ class Octree : public torch::CustomClassHolder
 public:
     Octree();
     // temporal solution
-    Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, int64_t max_num);
+    Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, std::vector<torch::Tensor> all_pcds, int64_t max_num);
     ~Octree();
     void init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t max_num);
 
@@ -157,6 +157,8 @@ public:
     double voxel_size_;
     std::vector<torch::Tensor> all_pts;
     std::vector<torch::Tensor> all_colors;
+    std::vector<torch::Tensor> all_pcds;
+
   
 
 private:

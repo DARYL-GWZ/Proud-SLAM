@@ -28,6 +28,7 @@ def get_network_size(net):
 class Mapping:
     def __init__(self, args, logger: BasicLogger, vis=None, **kwargs):
         super().__init__()
+        print("\033[0;33;40m",'mapping初始化', "\033[0m")
         self.args = args
         self.logger = logger
         self.visualizer = vis
@@ -244,7 +245,7 @@ class Mapping:
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
         colors = colors * 255
         # print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
-        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         
         # print("\033[0;33;40m",'===============', "\033[0m")
@@ -275,8 +276,8 @@ class Mapping:
         # np.savetxt('pcd_color1.txt', pcd_color[:,1,:].cpu().numpy())
         # print("\033[0;33;40m",'---------------', "\033[0m")
         print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
-        print("\033[0;33;40m",'children',children.shape, "\033[0m")
-        print("\033[0;33;40m",'features',features.shape, "\033[0m")
+        # print("\033[0;33;40m",'children',children.shape, "\033[0m")
+        # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
         # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
@@ -292,8 +293,11 @@ class Mapping:
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
-        # pcd_xyz = pcd_xyz.cuda().float()
+        pcd_xyz = pcd_xyz.cuda().float()
+        pcd_color = pcd_color.cuda().float()
+        
         # pcd_features = pcd_features.cuda().float()
+        print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
         
         # print("\033[0;33;40m",'===mapping====', "\033[0m")
         # np.savetxt('voxels.txt', voxels.cpu().numpy())

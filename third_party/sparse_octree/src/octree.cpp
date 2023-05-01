@@ -17,7 +17,7 @@ Octree::Octree()
 {
 }
 
-Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, int64_t max_num)
+Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, std::vector<torch::Tensor> all_pcds, int64_t max_num)
 {
     std::cout << "octree initialization is OK !!!!"   << std::endl;
     // std::cout << "max_num: " << max_num<< std::endl;
@@ -27,7 +27,11 @@ Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vecto
     init(grid_dim, feat_dim, voxel_size,max_num);
     for (auto &pt : all_pts)
     {
-        insert(pt,pt,pt);
+        for (auto &color : all_colors){
+            for (auto &pcd : all_pcds){
+                insert(pt,color,pcd);
+            }
+        }
     }
 }
 
@@ -96,6 +100,8 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
     // temporal solution
     all_pts.push_back(pts);
     all_colors.push_back(color);
+    all_pcds.push_back(pcd);
+
     if (root_ == nullptr)
     {
         std::cout << "Octree not initialized!" << std::endl;
@@ -464,6 +470,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     auto node_count = count_nodes_internal();
     auto total_count = node_count.first;
     auto leaf_count = node_count.second;
+    std::cout << "total_count" << total_count<< std::endl;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
     auto all_pointclouds_xyz = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));

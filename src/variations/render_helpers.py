@@ -96,6 +96,7 @@ def get_features_vox(samples, map_states, voxel_size):
     # # print("\033[0;33;40m",'values',values.shape, "\033[0m")
     # print("\033[0;33;40m",'原始point_xyz',point_xyz.shape, "\033[0m")
     # print("\033[0;33;40m",'原始point_feats',point_feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'point_xyz222',point_xyz.shape, "\033[0m")
     
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
@@ -126,6 +127,8 @@ def get_features_vox(samples, map_states, voxel_size):
     
     # np.savetxt('feats_vox.txt', feats.detach().cpu().numpy())
     # print("\033[0;33;40m",'feats_vox',feats.shape, "\033[0m")
+    # print("\033[0;33;40m",'sampled_dis',sampled_dis.shape, "\033[0m")
+    
     # print("\033[0;33;40m",'=====vox======', "\033[0m")
     
     inputs = {"dists": sampled_dis, "emb": feats}
@@ -141,7 +144,7 @@ def encoding_3d(pos, d):
         encoding[:,:,2*i+1] = torch.sum(torch.cos(pos * x),dim = -1)
     return encoding
 
-@torch.enable_grad()
+@torch.no_grad()
 def get_features_pcd(samples, map_states, resnet):
     # encoder states
     # point_feats = map_states["voxel_vertex_idx"].cuda()
@@ -164,6 +167,9 @@ def get_features_pcd(samples, map_states, resnet):
     sampled_idx = samples["sampled_point_voxel_idx"].long()
     sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
     sampled_dis = samples["sampled_point_distance"]
+    # print("\033[0;33;40m",'point_xyz1111',point_xyz.shape, "\033[0m")
+    
+    # sampled_dis = samples["sampled_point_distance"]
     
     # print("\033[0;33;40m",'pointclouds_feature',pointclouds_feature.shape, "\033[0m")
     # xyz_list = []
@@ -205,6 +211,7 @@ def get_features_pcd(samples, map_states, resnet):
     # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
     
     feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
+    # feats = torch.rand(sampled_xyz.shape[0],16).cuda()
     # print("\033[0;33;40m",'===============', "\033[0m")
     # np.savetxt('feats_pcd.txt', feats.detach().cpu().numpy())
     # print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
@@ -373,6 +380,8 @@ def render_rays(
     
     centres = map_states["voxel_center_xyz"]
     childrens = map_states["voxel_structure"]
+    # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
+    
     # hit test--------------------
     if profiler is not None:
         profiler.tick("ray_intersect")
@@ -467,7 +476,7 @@ def render_rays(
 
     # samples_valid[sampled_point_xyz] torch.Size([20125, 3]) 
     # print("\033[0;33;40m",'samples_valid[sampled_point_xyz]',samples_valid['sampled_point_xyz'].shape, "\033[0m")
-    
+    # print("\033[0;33;40m",'map_states["voxel_center_xyz"]',map_states["voxel_center_xyz"].shape, "\033[0m")
     for i in range(0, num_points, chunk_size):
         chunk_samples = {name: s[i:i+chunk_size]
                          for name, s in samples_valid.items()}
@@ -480,21 +489,26 @@ def render_rays(
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
         # print("\033[0;33;40m",'=====123===', "\033[0m")
-        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
+
+        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # print("\033[0;33;40m",'=====789===', "\033[0m")
+
+        # chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
+        # with torch.no_grad():
         # print("\033[0;33;40m",'=====789===', "\033[0m")
         
-        # with torch.no_grad():
-        chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
         # sleep(500)
-        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         
         # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
-        if profiler is not None:
-            profiler.tok("get_features_vox")
+        
+        # if profiler is not None:
+        #     profiler.tok("get_features_vox")
 
-        # forward implicit fields
-        if profiler is not None:
-            profiler.tick("render_core")
+        # # forward implicit fields
+        # if profiler is not None:
+        #     profiler.tick("render_core")
 
         chunk_outputs = sdf_network(chunk_inputs)
         if profiler is not None:
