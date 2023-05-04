@@ -47,7 +47,7 @@ class VoxSLAM:
         self.tracker.process_first_frame(self.kf_buffer)
         self.processes = []
         # print("\033[0;33;40m",'完成slam类初始化', "\033[0m")
-
+        print("slam 初始化完成")
     def start(self):
         #建图进程
         mapping_process = mp.Process(

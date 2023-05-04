@@ -115,6 +115,8 @@ class Mapping:
                         # self.update_share_data(share_data, tracked_frame.stamp)
                     self.initialized = True
                 else:
+                    # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
+                    
                     # print("\033[0;33;40m",'initialization后', "\033[0m")      
                     # print("\033[0;33;40m",'-------3333--------', "\033[0m")      
                     self.do_mapping(share_data, tracked_frame)
@@ -176,6 +178,8 @@ class Mapping:
         
         # 选择要ba优化的关键帧序列
         optimize_targets = self.select_optimize_targets(tracked_frame)
+        # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
+        
         # optimize_targets = [f.cuda() for f in optimize_targets]
         # print("\033[0;33;40m",'=====123===', "\033[0m")
         bundle_adjust_frames(
@@ -293,8 +297,8 @@ class Mapping:
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
         centres = centres.cuda().float()
         children = children.cuda().int()
-        pcd_xyz = pcd_xyz.cuda().float()
-        pcd_color = pcd_color.cuda().float()
+        # pcd_xyz = pcd_xyz.cuda().float()
+        # pcd_color = pcd_color.cuda().float()
         
         # pcd_features = pcd_features.cuda().float()
         print("\033[0;33;40m",'centres',centres.shape, "\033[0m")

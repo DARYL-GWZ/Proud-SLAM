@@ -144,7 +144,7 @@ def encoding_3d(pos, d):
         encoding[:,:,2*i+1] = torch.sum(torch.cos(pos * x),dim = -1)
     return encoding
 
-@torch.no_grad()
+@torch.enable_grad()
 def get_features_pcd(samples, map_states, resnet):
     # encoder states
     # point_feats = map_states["voxel_vertex_idx"].cuda()
@@ -375,9 +375,7 @@ def render_rays(
         profiler=None,
         return_raw=False
 ):
-    # pc_colors = map_pc_states.colors
-    # pc_points = map_pc_states.points
-    
+
     centres = map_states["voxel_center_xyz"]
     childrens = map_states["voxel_structure"]
     # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
@@ -484,12 +482,13 @@ def render_rays(
 
 
         # get encoder features as inputs
-        if profiler is not None:
-            profiler.tick("get_features_vox")
+        # if profiler is not None:
+        #     profiler.tick("get_features_vox")
             # caculate the  embeddings, 三线性插值
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
         # print("\033[0;33;40m",'=====123===', "\033[0m")
-        # chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
+        chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
+        print("\033[0;31;40m",'chunk_inputs11',chunk_inputs['emb'].shape, "\033[0m")
 
         chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # print("\033[0;33;40m",'=====789===', "\033[0m")
@@ -501,14 +500,14 @@ def render_rays(
         # sleep(500)
         # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         
-        # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'][0][:], "\033[0m")
+        print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
         
-        # if profiler is not None:
-        #     profiler.tok("get_features_vox")
+        if profiler is not None:
+            profiler.tok("get_features_vox")
 
-        # # forward implicit fields
-        # if profiler is not None:
-        #     profiler.tick("render_core")
+        # forward implicit fields
+        if profiler is not None:
+            profiler.tick("render_core")
 
         chunk_outputs = sdf_network(chunk_inputs)
         if profiler is not None:
