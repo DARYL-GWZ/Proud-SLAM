@@ -59,6 +59,7 @@ class Mapping:
         self.step_size = mapper_specs["step_size"]
         self.step_size = self.step_size * self.voxel_size
         self.max_distance = args.data_specs["max_depth"]
+        print("\033[0;33;40m",'self.window_size',self.window_size, "\033[0m")
 
         embed_dim = args.decoder_specs["in_dim"]
         use_local_coord = mapper_specs["use_local_coord"]
@@ -91,7 +92,7 @@ class Mapping:
         self.resnet_optim = torch.optim.Adam(self.points_encoder.parameters(), lr=5e-3) 
 
         
-    def spin(self, share_data,kf_buffer):
+    def spin(self, share_data, kf_buffer):
         print("\033[0;33;40m",'*****mapping process started!*****', "\033[0m")
         
         while True:
@@ -114,8 +115,10 @@ class Mapping:
                         # print("\033[0;33;40m",'initialization3', "\033[0m")      
                         # self.update_share_data(share_data, tracked_frame.stamp)
                     self.initialized = True
+                    print("\033[0;33;40m",'第一帧初始化成功', "\033[0m")      
+                    
                 else:
-                    # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
+                    # print("\033[0;33;40m",'tracked_frame',tracked_frame ,"\033[0m")
                     
                     # print("\033[0;33;40m",'initialization后', "\033[0m")      
                     # print("\033[0;33;40m",'-------3333--------', "\033[0m")      
@@ -177,6 +180,7 @@ class Mapping:
         self.points_encoder.train()
         
         # 选择要ba优化的关键帧序列
+        # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
         optimize_targets = self.select_optimize_targets(tracked_frame)
         # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
         
@@ -260,6 +264,8 @@ class Mapping:
         # voxels = voxels[:1, :3]
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'----------------', "\033[0m")
+        # self.svo.insert(voxels.cpu().int(),voxels.cpu().int(),voxels.cpu().float())
+        
         self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
         # print("\033[0;33;40m",'======222======', "\033[0m")
 
@@ -300,7 +306,6 @@ class Mapping:
         # pcd_xyz = pcd_xyz.cuda().float()
         # pcd_color = pcd_color.cuda().float()
         
-        # pcd_features = pcd_features.cuda().float()
         print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
         
         # print("\033[0;33;40m",'===mapping====', "\033[0m")

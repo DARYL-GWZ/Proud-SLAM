@@ -100,6 +100,7 @@ def get_features_vox(samples, map_states, voxel_size):
     
     # ray point samples
     sampled_idx = samples["sampled_point_voxel_idx"].long()
+    # sampled_xyz = samples["sampled_point_xyz"]
     sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
     sampled_dis = samples["sampled_point_distance"]
     # print("\033[0;33;40m",'sampled_idx',sampled_idx.shape, "\033[0m")
@@ -150,8 +151,8 @@ def get_features_pcd(samples, map_states, resnet):
     # point_feats = map_states["voxel_vertex_idx"].cuda()
     # point_xyz = map_states["voxel_center_xyz"].cuda()
     # values = map_states["voxel_vertex_emb"].cuda()
-    pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
-    pointclouds_color = map_states["pointclouds_color"].cuda()
+    # pointclouds_xyz = map_states["pointclouds_xyz"].cuda()
+    # pointclouds_color = map_states["pointclouds_color"].cuda()
     # pcds_xyz = encoding_3d(pointclouds_xyz,8).cuda()
     # pcds_color = encoding_3d(pointclouds_color,8).cuda()
     # print("\033[0;33;40m",'pointclouds_xyz',pointclouds_xyz.shape, "\033[0m")
@@ -164,9 +165,9 @@ def get_features_pcd(samples, map_states, resnet):
     # print("\033[0;33;40m",'point_feats',point_feats.shape, "\033[0m")
     # print("\033[0;33;40m",'pointclouds_color',pointclouds_color.shape, "\033[0m")
     # print("\033[0;33;40m",'pointclouds_feature',pointclouds_feature.shape, "\033[0m")
-    sampled_idx = samples["sampled_point_voxel_idx"].long()
-    sampled_xyz = samples["sampled_point_xyz"].requires_grad_(True)
-    sampled_dis = samples["sampled_point_distance"]
+    # sampled_idx = samples["sampled_point_voxel_idx"].long()
+    sampled_xyz = samples["sampled_point_xyz"]
+    # sampled_dis = samples["sampled_point_distance"]
     # print("\033[0;33;40m",'point_xyz1111',point_xyz.shape, "\033[0m")
     
     # sampled_dis = samples["sampled_point_distance"]
@@ -189,10 +190,10 @@ def get_features_pcd(samples, map_states, resnet):
     # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
 
     
-    pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
-    pcd_color = F.embedding(sampled_idx, pointclouds_color.reshape(pointclouds_color.shape[0],-1))
+    # pcd_xyz = F.embedding(sampled_idx, pointclouds_xyz.reshape(pointclouds_xyz.shape[0],-1))
+    # pcd_color = F.embedding(sampled_idx, pointclouds_color.reshape(pointclouds_color.shape[0],-1))
     # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
-    pcd_feats = resnet(pcd_xyz.reshape(-1,8,3), pcd_color.reshape(-1,8,3))
+    # pcd_feats = resnet(pcd_xyz.reshape(-1,8,3), pcd_color.reshape(-1,8,3))
     
     # pcd_feats = F.embedding(sampled_idx, pointclouds_feature.reshape(pointclouds_feature.shape[0],-1))
     # print("\033[0;33;40m",'======pcd======', "\033[0m")
@@ -210,15 +211,15 @@ def get_features_pcd(samples, map_states, resnet):
     # pcd_feats = F.embedding(sampled_idx, point_feats), values)
     # print("\033[0;33;40m",'pcd_feats',pcd_feats.shape, "\033[0m")
     
-    feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
-    # feats = torch.rand(sampled_xyz.shape[0],16).cuda()
+    # feats = get_embeddings_pcd(sampled_xyz, pcd_xyz.reshape(pcd_xyz.shape[0],-1,3), pcd_feats.reshape(pcd_feats.shape[0],-1,16))
+    feats = torch.ones(sampled_xyz.shape[0],16).float().cuda()
     # print("\033[0;33;40m",'===============', "\033[0m")
     # np.savetxt('feats_pcd.txt', feats.detach().cpu().numpy())
     # print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
 
     # print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
     # print("\033[0;33;40m",'-----pcd-----', "\033[0m")
-    inputs = {"dists": sampled_dis, "emb": feats}
+    inputs = { "emb": feats}
     return inputs
 
 @torch.enable_grad()
@@ -488,9 +489,9 @@ def render_rays(
         # chunk_inputs {"dists": sampled_dis, "emb": feats}
         # print("\033[0;33;40m",'=====123===', "\033[0m")
         chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
-        print("\033[0;31;40m",'chunk_inputs11',chunk_inputs['emb'].shape, "\033[0m")
+        # print("\033[0;31;40m",'chunk_inputs11',chunk_inputs['emb'].shape, "\033[0m")
 
-        chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
+        # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         # print("\033[0;33;40m",'=====789===', "\033[0m")
 
         # chunk_inputs = get_features_pcd(chunk_samples, map_states, resnet)
@@ -500,7 +501,7 @@ def render_rays(
         # sleep(500)
         # chunk_inputs = get_features_vox(chunk_samples, map_states, voxel_size)
         
-        print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
+        # print("\033[0;31;40m",'chunk_inputs',chunk_inputs['emb'].shape, "\033[0m")
         
         if profiler is not None:
             profiler.tok("get_features_vox")

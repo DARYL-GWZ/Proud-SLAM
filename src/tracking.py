@@ -71,8 +71,13 @@ class Tracking:
             if share_data.stop_tracking:
                 break
             try:
+                # print("\033[0;33;40m",'frame_id',frame_id, "\033[0m")
+                
                 data_in = self.data_stream[frame_id]
-                # print("\033[0;33;40m",'data_in',data_in.shape, "\033[0m")
+                # print("\033[0;33;40m",'data_in1',data_in[1].shape, "\033[0m")
+                # print("\033[0;33;40m",'data_in0',data_in[0], "\033[0m")
+                # print("\033[0;33;40m",'data_in4',data_in[4], "\033[0m")
+                # print("\033[0;33;40m",'data_in',len(data_in), "\033[0m")
 
                 if self.show_imgs:
                     import cv2

@@ -24,14 +24,18 @@ Octree::Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vecto
     Octant::next_index_ = 0;
     MAX_POINTS_PER_LEAF = max_num;
     // std::cout << "MAX_POINTS_PER_LEAF0002: " << MAX_POINTS_PER_LEAF<< std::endl;
-    init(grid_dim, feat_dim, voxel_size,max_num);
+    init(grid_dim, feat_dim, voxel_size, max_num);
+    // for (auto &pt : all_pts)
+    // {
+    //     for (auto &color : all_colors){
+    //         for (auto &pcd : all_pcds){
+    //             insert(pt,color,pcd);
+    //         }
+    //     }
+    // }
     for (auto &pt : all_pts)
     {
-        for (auto &color : all_colors){
-            for (auto &pcd : all_pcds){
-                insert(pt,color,pcd);
-            }
-        }
+        insert(pt,pt,pt);
     }
 }
 

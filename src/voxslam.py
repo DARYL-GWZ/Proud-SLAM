@@ -37,6 +37,8 @@ class VoxSLAM:
         # print("\033[0;33;40m",'buffer数',self.kf_buffer, "\033[0m")
         # data stream
         self.data_stream = get_dataset(args)
+        # print("\033[0;33;40m",'args',args, "\033[0m")
+        
         # tracker 
         # print("\033[0;33;40m",'数据流',self.data_stream, "\033[0m")
         # 加载参数，数据集
@@ -60,14 +62,14 @@ class VoxSLAM:
             target=self.tracker.spin, args=(self.share_data, self.kf_buffer))
         tracking_process.start()
         #可视化进程
-        vis_process = mp.Process(
-            target=self.visualizer.spin, args=(self.share_data,))
+        # vis_process = mp.Process(
+        #     target=self.visualizer.spin, args=(self.share_data,))
         #存储建图和追踪进程
         self.processes = [tracking_process, mapping_process]
 
-        if self.args.enable_vis:
-            vis_process.start()
-            self.processes += [vis_process]
+        # if self.args.enable_vis:
+        #     vis_process.start()
+        #     self.processes += [vis_process]
 
     def wait_child_processes(self):
         for p in self.processes:
