@@ -41,10 +41,13 @@ class Tracking:
             self.end_frame = len(self.data_stream)
 
         # sanity check on the lower/upper bounds
+        # print("\033[0;33;40m",'初始帧',self.start_frame, "\033[0m")
+        # print("\033[0;33;40m",'结束帧',self.end_frame, "\033[0m")
         self.start_frame = min(self.start_frame, len(self.data_stream))
         self.end_frame = min(self.end_frame, len(self.data_stream))
-        # print("\033[0;33;40m",'初始帧',self.start_frame, "\033[0m")
-        # print("\033[0;33;40m",'结束帧',self.start_frame, "\033[0m")
+
+        # print("\033[0;33;40m",'len(self.data_stream)',len(self.data_stream), "\033[0m")
+        
         # profiler
         verbose = get_property(args.debug_args, "verbose", False)
         self.profiler = Profiler(verbose=verbose)
@@ -109,15 +112,18 @@ class Tracking:
             pass
 
     def do_tracking(self, share_data, current_frame, kf_buffer):
-        # print("\033[0;33;40m",'share_data',share_data, "\033[0m")
+        # print("\033[0;33;40m",'do_tracking', "\033[0m")
         decoder = share_data.decoder.cuda()
         points_encoder = share_data.points_encoder.cuda()
         
         # print("\033[0;33;40m",'xxxxxxxxxxx3', "\033[0m")
         map_states = share_data.states
         # print("\033[0;33;40m",'map_states',map_states.keys(), "\033[0m")
+        # print("\033[0;33;40m",'tracking voxel',map_states["voxel_center_xyz"].shape, "\033[0m")
+        
         for k, v in map_states.items():
             map_states[k] = v.cuda()
+        # print("\033[0;33;40m",'tracking voxel1212',map_states["voxel_center_xyz"].shape, "\033[0m")
 
         self.profiler.tick("track frame")
         # map_pc_states = None
@@ -164,6 +170,8 @@ class Tracking:
         decoder = share_data.decoder.cuda()
         points_encoder = share_data.points_encoder.cuda()
         map_states = share_data.states
+        print("\033[0;33;40m",'map_states["voxel_center_xyz"]33',map_states["voxel_center_xyz"].shape, "\033[0m")
+        
         for k, v in map_states.items():
             map_states[k] = v.cuda()
 
@@ -175,7 +183,8 @@ class Tracking:
 
         rays_o = rays_o.reshape(1, -1, 3).contiguous()
         rays_d = rays_d.reshape(1, -1, 3)
-
+        print("\033[0;33;40m",'map_states["voxel_center_xyz"]55',map_states["voxel_center_xyz"].shape, "\033[0m")
+        
         final_outputs = render_rays(
             rays_o,
             rays_d,

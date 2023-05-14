@@ -57,6 +57,8 @@ class VoxSLAM:
         mapping_process.start()
         print("initializing the first frame ...")
         sleep(5)
+        print("--------------------------")
+        
         #追踪进程
         tracking_process = mp.Process(
             target=self.tracker.spin, args=(self.share_data, self.kf_buffer))
@@ -72,7 +74,9 @@ class VoxSLAM:
         #     self.processes += [vis_process]
 
     def wait_child_processes(self):
+        print("\033[0;33;40m",'wait_child_processes ', "\033[0m")
         for p in self.processes:
+            print("\033[0;33;40m",'----------- ', "\033[0m")
             p.join()
 
     @torch.no_grad()

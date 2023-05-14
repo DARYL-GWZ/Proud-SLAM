@@ -12,6 +12,7 @@ from utils.import_util import get_decoder, get_property, get_resnet
 from variations.render_helpers import bundle_adjust_frames
 from utils.mesh_util import MeshExtractor
 import open3d as o3d
+import cv2
 # from variations.point_feature import PointsResNet
 
 torch.classes.load_library(
@@ -110,8 +111,10 @@ class Mapping:
                     self.insert_keyframe(tracked_frame)
                     # print("\033[0;33;40m",'kf_buffer.empty()',kf_buffer.empty(), "\033[0m")      
                     while kf_buffer.empty():
+                        # pass
                         # print("\033[0;33;40m",'initialization2', "\033[0m")      
                         self.do_mapping(share_data)
+                        # print('==================')
                         # print("\033[0;33;40m",'initialization3', "\033[0m")      
                         # self.update_share_data(share_data, tracked_frame.stamp)
                     self.initialized = True
@@ -180,7 +183,10 @@ class Mapping:
         self.points_encoder.train()
         
         # 选择要ba优化的关键帧序列
-        # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
+        # print("\033[0;33;40m",'do_mapping', "\033[0m")
+        # print("\033[0;33;40m",'mapping voxel1',self.map_states["voxel_center_xyz"].shape, "\033[0m")
+        
+        
         optimize_targets = self.select_optimize_targets(tracked_frame)
         # print("\033[0;33;40m",'tracked_frame',tracked_frame, "\033[0m")
         
@@ -232,6 +238,7 @@ class Mapping:
         share_data.points_encoder = deepcopy(self.points_encoder).cpu()
         
         tmp_states = {}
+        # print("\033[0;33;40m",'mapping update voxel',self.map_states["voxel_center_xyz"].shape, "\033[0m")
         for k, v in self.map_states.items():
             tmp_states[k] = v.detach().cpu()
         share_data.states = tmp_states
@@ -242,7 +249,6 @@ class Mapping:
         print("insert keyframe")
         self.current_keyframe = frame
         self.keyframe_graph += [frame]
-        
         # self.update_grid_features()
     
     def create_voxels_pointcloud(self, frame):
@@ -252,20 +258,22 @@ class Mapping:
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
         colors = colors * 255
-        # print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+        
+        color_gt = frame.get_color_gt().cpu().numpy()
+        print("\033[0;33;40m",'color_gt',color_gt.shape, "\033[0m")
+        cv2.imwrite("color.jpg",color_gt)
         # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         
         # print("\033[0;33;40m",'===============', "\033[0m")
         # np.savetxt('colors.txt', colors.cpu().numpy())
         # np.savetxt('points.txt', points.cpu().numpy())
-        # np.savetxt('voxels2.txt', voxels.cpu().numpy())
+        # np.savetxt('voxels.txt', voxels.detach().cpu().numpy())
         # print("\033[0;33;40m",'===============', "\033[0m")
         # voxels = voxels[:1, :3]
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'----------------', "\033[0m")
         # self.svo.insert(voxels.cpu().int(),voxels.cpu().int(),voxels.cpu().float())
-        
         self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
         # print("\033[0;33;40m",'======222======', "\033[0m")
 
@@ -278,7 +286,7 @@ class Mapping:
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
         # print("\033[0;33;40m",'===============', "\033[0m")
-        # np.savetxt('voxels.txt', voxels.cpu().numpy())
+        # np.savetxt('voxels1.txt', voxels.cpu().numpy())
         # np.savetxt('pcd_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
         # np.savetxt('pcd_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
         # np.savetxt('pcd_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())

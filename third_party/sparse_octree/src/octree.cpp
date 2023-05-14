@@ -101,6 +101,8 @@ std::vector<Subspace> Octree::divideSpace(Point3 center, double length) {
 
 void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
 {
+    std::cout << "Octree::insert !!!!"   << std::endl;
+
     // temporal solution
     all_pts.push_back(pts);
     all_colors.push_back(color);

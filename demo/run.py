@@ -21,5 +21,5 @@ if __name__ == '__main__':
 
     slam = VoxSLAM(args)
     slam.start()
-    print("\033[0;33;40m",'111111', "\033[0m")
+    print("\033[0;33;40m",'slam.start()运行结束', "\033[0m")
     slam.wait_child_processes()
