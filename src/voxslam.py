@@ -57,7 +57,7 @@ class VoxSLAM:
         mapping_process.start()
         print("initializing the first frame ...")
         sleep(5)
-        print("--------------------------")
+        # print("--------------------------")
         
         #追踪进程
         tracking_process = mp.Process(

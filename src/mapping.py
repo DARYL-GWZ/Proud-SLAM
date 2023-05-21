@@ -81,17 +81,18 @@ class Mapping:
         torch.nn.init.normal_(self.embeddings, std=0.01)
         self.embed_optim = torch.optim.Adam([self.embeddings], lr=5e-3)
         self.model_optim = torch.optim.Adam(self.decoder.parameters(), lr=5e-3)
+        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
+        print("\033[0;33;40m",'embed_dim',embed_dim, "\033[0m")
 
         self.svo = torch.classes.svo.Octree()
         self.svo.init(256, embed_dim, self.voxel_size, 8)
-        print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
         
         self.frame_poses = []
         self.depth_maps = []
         self.last_tracked_frame_id = 0
         # self.points_encoder = PointsResNet(16)
         self.resnet_optim = torch.optim.Adam(self.points_encoder.parameters(), lr=5e-3) 
-
+        self.flag = 5
         
     def spin(self, share_data, kf_buffer):
         print("\033[0;33;40m",'*****mapping process started!*****', "\033[0m")
@@ -251,25 +252,36 @@ class Mapping:
         self.keyframe_graph += [frame]
         # self.update_grid_features()
     
+    
     def create_voxels_pointcloud(self, frame):
+        self.flag = self.flag - 1
         points = frame.get_points().cuda()
         colors = frame.get_color().cuda()
         pose = frame.get_pose().cuda()
+        # print("\033[0;33;40m",'=====print=====', "\033[0m")
+        # np.savetxt(f'pcd_{self.flag}_or_points.txt', points.detach().cpu().numpy())
         points = points@pose[:3, :3].transpose(-1, -2) + pose[:3, 3]
         voxels = torch.div(points, self.voxel_size, rounding_mode='floor')
         colors = colors * 255
         
-        color_gt = frame.get_color_gt().cpu().numpy()
-        print("\033[0;33;40m",'color_gt',color_gt.shape, "\033[0m")
-        cv2.imwrite("color.jpg",color_gt)
-        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        # test the frame
+        # color_gt = frame.get_color_gt().cpu().numpy()
+        # color_gt = color_gt * 255
+        # cv2.imwrite(f'vox_{self.flag}_color.jpg',color_gt)
+        
+        # np.savetxt('colors.txt', colors.cpu().numpy())
+        # print("\033[0;33;40m",'color_gt 输出完成',color_gt.shape, "\033[0m")
+        
+        # print("\033[0;33;40m",'self.voxel_size',self.voxel_size, "\033[0m")
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         
-        # print("\033[0;33;40m",'===============', "\033[0m")
-        # np.savetxt('colors.txt', colors.cpu().numpy())
-        # np.savetxt('points.txt', points.cpu().numpy())
-        # np.savetxt('voxels.txt', voxels.detach().cpu().numpy())
-        # print("\033[0;33;40m",'===============', "\033[0m")
+        # test the input information
+        # np.savetxt(f'pcd_{self.flag}_pose.txt', pose.detach().cpu().numpy())
+        # np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
+        # np.savetxt(f'vox_{self.flag}_points.txt', points.detach().cpu().numpy())
+        # np.savetxt(f'pcd_{self.flag}_voxels.txt', voxels.detach().cpu().numpy())
+        # print("\033[0;33;40m",'======print over=====', "\033[0m")
+        
         # voxels = voxels[:1, :3]
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'----------------', "\033[0m")
