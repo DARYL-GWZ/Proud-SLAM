@@ -555,3 +555,24 @@
 #                    [1,2,6]]])
 # encoding = encoding_3d(pos, d)
 # print(encoding)
+
+# ---------------------hash text----------------
+# import torch
+# import numpy as np
+
+# torch.classes.load_library(
+#     "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
+
+# svo = torch.classes.svo.Octree()
+# svo.init(256, 16, 0.2, 8)
+
+# points = torch.rand(80000, 3)
+# colors = torch.rand(80000, 3)
+# print("\033[0;33;40m",'points',points.shape, "\033[0m")
+
+# svo.insert_hash(points.cpu().float(),colors.cpu().int())
+# voxels = svo.get_centres()
+# # voxels = np.array(voxels)
+# print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+
+

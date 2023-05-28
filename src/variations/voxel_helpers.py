@@ -570,6 +570,44 @@ def ray_intersect_vox(ray_start, ray_dir, flatten_centers, flatten_children, vox
     }
     return intersection_outputs, hits
 
+@torch.no_grad()
+def ray_intersect_vox_AABB(ray_start, ray_dir, flatten_centers, voxel_size, max_hits, max_distance=10.0):
+    # ray-voxel intersection
+    max_hits_temp = 50
+    pts_idx, min_depth, max_depth = aabb_ray_intersect(
+        voxel_size,
+        max_hits_temp,
+        flatten_centers,
+        ray_start,
+        ray_dir)
+
+    # sort the depths
+    min_depth.masked_fill_(pts_idx.eq(-1), max_distance)
+    max_depth.masked_fill_(pts_idx.eq(-1), max_distance)
+
+    min_depth, sorted_idx = min_depth.sort(dim=-1)
+    max_depth = max_depth.gather(-1, sorted_idx)
+    pts_idx = pts_idx.gather(-1, sorted_idx)
+
+    pts_idx[min_depth > max_distance] = -1
+    min_depth.masked_fill_(pts_idx.eq(-1), max_distance)
+    max_depth.masked_fill_(pts_idx.eq(-1), max_distance)
+    # remove all points that completely miss the object
+    max_hits = torch.max(pts_idx.ne(-1).sum(-1))
+    min_depth = min_depth[..., :max_hits]
+    max_depth = max_depth[..., :max_hits]
+    pts_idx = pts_idx[..., :max_hits]
+
+
+    hits = pts_idx.ne(-1).any(-1)
+
+    intersection_outputs = {
+        "min_depth": min_depth,
+        "max_depth": max_depth,
+        "intersected_voxel_idx": pts_idx,
+    }
+    return intersection_outputs, hits
+
 
 @torch.no_grad()
 def ray_sample(intersection_outputs, step_size=0.01, fixed=False):

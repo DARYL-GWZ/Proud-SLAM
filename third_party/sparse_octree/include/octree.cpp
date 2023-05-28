@@ -332,12 +332,11 @@ void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
         point.g = colors[i][1];
         point.b = colors[i][2];
         PCD_->points.push_back(point);
-        // std::cout << "point " << point << std::endl;
     }
     ivox_->AddPoints(PCD_->points);
 }
 
-torch::Tensor Octree::get_centres()
+std::tuple<torch::Tensor> Octree::get_centres()
 {
     auto all_voxels = ivox_->get_voxel_center();
     return all_voxels;

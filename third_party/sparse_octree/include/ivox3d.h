@@ -54,7 +54,7 @@ class IVox {
 
     struct Options {
         float resolution_ = 0.2;                        // ivox resolution
-        float inv_resolution_ = 5.0;                   // inverse resolution
+        float inv_resolution_ = 10.0;                   // inverse resolution
         NearbyType nearby_type_ = NearbyType::NEARBY6;  // nearby range
         std::size_t capacity_ = 1000000;                // capacity
     };
@@ -74,7 +74,7 @@ class IVox {
      */
     void AddPoints(const PointVector& points_to_add);
     // get voxel center
-    torch::Tensor get_voxel_center();
+    std::tuple<torch::Tensor> get_voxel_center();
     /// get nn
     bool GetClosestPoint(const PointType& pt, PointType& closest_pt);
 
@@ -264,15 +264,13 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointVector& cloud, 
 template <int dim, IVoxNodeType node_type, typename PointType>
 void IVox<dim, node_type, PointType>::AddPoints(const PointVector& points_to_add) {
     std::for_each(std::execution::unseq, points_to_add.begin(), points_to_add.end(), [this](const auto& pt) {
-        // std::cout << "pt = (" << pt.x << ", " << pt.y<< ", " << pt.z<< " )"<< std::endl;
         auto key = Pos2Grid(ToEigen<float, dim>(pt));
-        // std::cout << "insert key = (" << key[0] << ", " << key[1]<< ", " << key[2]<< " )"<< std::endl;
 
         auto iter = grids_map_.find(key);
         if (iter == grids_map_.end()) {
             PointType center;
             center.getVector3fMap() = key.template cast<float>() * options_.resolution_;
-            // std::cout << "insert center = (" << center.x << ", " << center.y<< ", " << center.z<< " )"<< std::endl;
+
             grids_cache_.push_front({key, NodeType(center, options_.resolution_)});
             grids_map_.insert({key, grids_cache_.begin()});
 
@@ -291,20 +289,16 @@ void IVox<dim, node_type, PointType>::AddPoints(const PointVector& points_to_add
 }
 
 template <int dim, IVoxNodeType node_type, typename PointType>
-torch::Tensor IVox<dim, node_type, PointType>::get_voxel_center(){
+std::tuple<torch::Tensor> IVox<dim, node_type, PointType>::get_voxel_center(){
     int num = NumValidGrids();
-    torch::Tensor all_voxels = torch::zeros({num, 3}, dtype(torch::kFloat32));
+    auto all_voxels = torch::zeros({num, 3}, dtype(torch::kFloat32));
     PointType center;
     int i = 0;
     for (auto& it : grids_cache_) {
         auto key = it.first;
-        // std::cout << "get key = (" << key[0]<< ", " << key[1]<< ", " << key[2]<< " )"<< std::endl;
         center.getVector3fMap() = key.template cast<float>() * options_.resolution_;
-        // std::cout << "get center = (" << center.x << ", " << center.y<< ", " << center.z<< " )"<< std::endl;
-       
         std::vector<float> coords = {center.x, center.y,center.z};
-        // std::vector<float> coords = {key[0], key[1],key[2]};
-        torch::Tensor voxel = torch::from_blob(coords.data(), {3}, dtype(torch::kFloat32));
+        auto voxel = torch::from_blob(coords.data(), {3}, dtype(torch::kFloat32));
         all_voxels[i] = voxel;
         i++;
     }	
@@ -314,9 +308,6 @@ torch::Tensor IVox<dim, node_type, PointType>::get_voxel_center(){
 
 template <int dim, IVoxNodeType node_type, typename PointType>
 Eigen::Matrix<int, dim, 1> IVox<dim, node_type, PointType>::Pos2Grid(const IVox::PtType& pt) const {
-    // std::cout << "insert pt = (" << pt[0] << ", " << pt[1]<< ", " << pt[2]<< " )"<< std::endl;
-    // std::cout << "pt = (" << pt[0]* options_.inv_resolution_ << ", " << pt[1]* options_.inv_resolution_<< ", " << pt[2]* options_.inv_resolution_<< " )"<< std::endl;
-    
     return (pt * options_.inv_resolution_).array().round().template cast<int>();
 }
 

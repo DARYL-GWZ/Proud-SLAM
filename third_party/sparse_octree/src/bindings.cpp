@@ -12,6 +12,7 @@ TORCH_LIBRARY(svo, m)
         .def(torch::init<>())
         .def("init", &Octree::init)
         .def("insert", &Octree::insert)
+        .def("insert_hash", &Octree::insert_hash)
         .def("try_insert", &Octree::try_insert)
         .def("get_voxels", &Octree::get_voxels)
         .def("get_leaf_voxels", &Octree::get_leaf_voxels)
@@ -20,6 +21,7 @@ TORCH_LIBRARY(svo, m)
         .def("count_leaf_nodes", &Octree::count_leaf_nodes)
         .def("has_voxel", &Octree::has_voxel)
         .def("get_centres_and_children", &Octree::get_centres_and_children)
+        .def("get_centres", &Octree::get_centres)
         .def_pickle(
         // __getstate__
         [](const c10::intrusive_ptr<Octree>& self) -> std::tuple<int64_t, int64_t, double, std::vector<torch::Tensor>, std::vector<torch::Tensor>, std::vector<torch::Tensor>, int64_t> {

@@ -1,6 +1,6 @@
 #include <memory>
-// #include <torch/script.h>
-// #include <torch/custom_class.h>
+#include <torch/script.h>
+#include <torch/custom_class.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -162,7 +162,7 @@ public:
     
     // get voxel centres and childrens
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
-    torch::Tensor get_centres();
+    std::tuple<torch::Tensor> get_centres();
 
 public:
     int size_;
