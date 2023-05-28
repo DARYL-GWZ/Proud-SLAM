@@ -57,7 +57,8 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t
     // root_->depth_ = 0;
     root_->is_leaf_ = false;
     // MAX_POINTS_PER_LEAF = max_num;
-
+    ivox_ = std::make_shared<IVoxType>(ivox_options_);
+    
     // feats_allocated_ = 0;
     // auto options = torch::TensorOptions().requires_grad(true);
     // feats_array_ = torch::randn({MAX_NUM_VOXELS, feat_dim}, options) * 0.01;
@@ -68,7 +69,7 @@ bool Octree::isInSubspace(Point3 point, Subspace subspace,int j) {
     double half_length = subspace.length / 2.0;
     // double half_length = subspace.length ;
     if(j > 0){
-        half_length = subspace.length * 2;
+        half_length = subspace.length ;
     }
     if(point.x > subspace.center.x-half_length && point.x < subspace.center.x+half_length &&
        point.y > subspace.center.y-half_length && point.y < subspace.center.y+half_length &&
@@ -80,7 +81,7 @@ bool Octree::isInSubspace(Point3 point, Subspace subspace,int j) {
 
 std::vector<Subspace> Octree::divideSpace(Point3 center, double length) {
     vector<Subspace> subspaces;
-    double half_length = length / 2.0;
+    double half_length = length / 4.0;
     for(int i=0; i<2; i++) {
         for(int j=0; j<2; j++) {
             for(int k=0; k<2; k++) {
@@ -117,8 +118,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
     auto points = pts.accessor<int, 2>();
     auto colors = color.accessor<int, 2>();
     auto pcds = pcd.accessor<float, 2>();
-    // int flag1 = 1;
-    // int flag2 = 1;
+
     if (points.size(1) != 3)
     {
         std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
@@ -134,6 +134,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
         std::cout << "pcd dimensions mismatch: inputs are " << pcds.size(1) << " expect 3" << std::endl;
         return;
     }
+    
     for (int i = 0; i < points.size(0); ++i)
     {
         for (int j = 0; j < 8; ++j)
@@ -200,7 +201,7 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                         for(int k=0; k<8; k++) {
                             
                             Point3 point = {pcds[i][0],pcds[i][1],pcds[i][2]};
-                            
+
                             if(isInSubspace(point, tmp->subspaces_[k],j)) {
                                 // if(flag1 < 50){
                                     // std::cout << "points"<< "("<< points[i][0] << "," << points[i][1] << "," << points[i][2] << ")"<< std::endl;
@@ -210,13 +211,13 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                                     //     << "edge=  " << edge << std::endl;
                                     // flag1 ++;
                                 // }
-                            // 如果该子空间中已经有点，则替换掉该点
+                                // 如果该子空间中已经有点，则替换掉该点
                                 if(tmp->subspaces_[k].point.x != 0.0 || tmp->subspaces_[k].point.y != 0.0 || tmp->subspaces_[k].point.z != 0.0) {
                                     tmp->subspaces_[k].point = point;
                                     // std::cout << "新节点替换pcd"  << std::endl;
 
                                 }
-                            // 否则将该点存入对应的子空间中
+                                // 否则将该点存入对应的子空间中
                                 else {
                                     // if(flag1 < 50){
                                     // std::cout << "新节点添加新pcd"  << std::endl;
@@ -290,6 +291,77 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
         }
     }
 }
+
+void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
+{
+    std::cout << "hash insert !!!!"   << std::endl;
+
+    // temporal solution
+    all_pts.push_back(pts);
+    all_colors.push_back(color);
+
+    if (root_ == nullptr)
+    {
+        std::cout << "Octree not initialized!" << std::endl;
+    }
+    // std::cout << "MAX_POINTS_PER_LEAF1: " << MAX_POINTS_PER_LEAF<< std::endl;
+
+    auto points = pts.accessor<float, 2>();
+    auto colors = color.accessor<int, 2>();
+
+
+    if (points.size(1) != 3)
+    {
+        std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
+        return;
+    }
+    if (colors.size(1) != 3)
+    {
+        std::cout << "Colors dimensions mismatch: inputs are " << colors.size(1) << " expect 3" << std::endl;
+        return;
+    }
+
+
+    CloudPtr PCD_{new PointCloudType()};
+    for (int i = 0; i < points.size(0); ++i){
+        PointType point;
+        point.x = points[i][0];
+        point.y = points[i][1];
+        point.z = points[i][2];
+        point.r = colors[i][0];
+        point.g = colors[i][1];
+        point.b = colors[i][2];
+        PCD_->points.push_back(point);
+    }
+    ivox_->AddPoints(PCD_->points);
+}
+
+std::tuple<torch::Tensor> Octree::get_centres()
+{
+
+    auto all_voxels = torch::zeros({1000, 4}, dtype(torch::kFloat32));
+    
+    // // std::cout << "all_pointclouds_xyz" << all_pointclouds_xyz<< std::endl;
+    // // std::cout << "all_pointclouds_colors" << all_pointclouds_colors<< std::endl;
+    // // std::cout << "MAX_POINTS_PER_LEAF2: " << MAX_POINTS_PER_LEAF<< std::endl;
+    
+    // std::queue<Octant *> all_nodes;
+    // all_nodes.push(root_);
+
+    // while (!all_nodes.empty())
+    // {
+    //     auto node_ptr = all_nodes.front();
+    //     all_nodes.pop();
+
+    //     auto xyz = decode(node_ptr->code_);
+    //     std::vector<float> coords = {xyz[0], xyz[1], xyz[2], float(node_ptr->side_)};
+    //     auto voxel = torch::from_blob(coords.data(), {4}, dtype(torch::kFloat32));
+    //     all_voxels[node_ptr->index_] = voxel;
+
+    // }
+    return std::make_tuple(all_voxels);
+}
+
 
 double Octree::try_insert(torch::Tensor pts)
 {
@@ -479,7 +551,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     std::cout << "total_count" << total_count<< std::endl;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
-    auto all_pointclouds_xyz = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
+    auto all_pointclouds_xyz = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));
     auto all_pointclouds_colors = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
     auto all_children = -torch::ones({total_count, 8}, dtype(torch::kFloat32));
     auto all_features = -torch::ones({total_count, 8}, dtype(torch::kInt32));
@@ -508,7 +580,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         //     }
         // std::cout << "MAX_POINTS_PER_LEAF: " << MAX_POINTS_PER_LEAF<< std::endl;
 
-        std::vector<std::array<float, 3>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
+        std::vector<std::array<float, 4>> xyz_array(MAX_POINTS_PER_LEAF, {0, 0, 0, 0});
         std::vector<std::array<float, 3>> color_array(MAX_POINTS_PER_LEAF, {0, 0, 0});
         
             // || node_ptr->side_ == size_
@@ -538,7 +610,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
             xyz_array[i][0]=x_;
             xyz_array[i][1]=y_;
             xyz_array[i][2]=z_;
-            // xyz_array[i][3]=float(node_ptr->side_);
+            xyz_array[i][3]=float(node_ptr->side_);
             auto color_ = hilbert_decode(node_ptr->point_data_color[i]);
             // std::cout << "color_[0]: " << color_[0]<< "  flag5: " << flag5 << std::endl;
             color_array[i][0]=color_[0];
@@ -560,7 +632,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
         // }
         // std::cout << "xyz_array" << xyz_array<< std::endl;
 
-        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));
+        auto pc_position = torch::from_blob(xyz_array.data(), {MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));
         all_pointclouds_xyz[node_ptr->index_] = pc_position;
 
         auto pc_rgb = torch::from_blob(color_array.data(), {MAX_POINTS_PER_LEAF, 3}, dtype(torch::kFloat32));

@@ -146,7 +146,7 @@ namespace hilbert
             //
             template<typename T, size_t N>
             std::array<T, N>
-            UntransposeBits(std::array<T, N> const &in)
+            UntransposeBits1(std::array<T, N> const &in)
             {
                 const size_t bits = std::numeric_limits<T>::digits;
                 const T high_bit(T(1) << (bits - 1));
@@ -182,7 +182,7 @@ namespace hilbert
             //
             template<typename T, size_t N>
             std::array<T, N>
-            TransposeBits(std::array<T, N> const &in)
+            TransposeBits1(std::array<T, N> const &in)
             {
                 const size_t bits = std::numeric_limits<T>::digits;
                 const T high_bit(T(1) << (bits - 1));
@@ -221,11 +221,11 @@ namespace hilbert
         // sort order.
         template<typename T, size_t N>
         std::array<T, N>
-        IndexToPosition(
+        IndexToPosition1(
                 std::array<T, N> const &in)
         {
             // First convert index to transpose.
-            std::array<T, N> out(internal::TransposeBits(in));
+            std::array<T, N> out(internal::TransposeBits1(in));
 
             // Initial gray encoding of transposed vector.
             {
@@ -283,7 +283,7 @@ namespace hilbert
         // sort order.
         template<typename T, size_t N>
         std::array<T, N>
-        PositionToIndex(std::array<T, N> const &in)
+        PositionToIndex1(std::array<T, N> const &in)
         {
             const size_t bits = std::numeric_limits<T>::digits;
 
@@ -343,7 +343,7 @@ namespace hilbert
                 }
             }
 
-            return internal::UntransposeBits(out);
+            return internal::UntransposeBits1(out);
         }
     } // namespace v1
 } // namespace hilbert
@@ -355,7 +355,7 @@ inline Eigen::Vector3i hilbert_decode(uint32_t idx)
     tmp[0] = uint8_t((idx >> 16) & 0xff);
     tmp[1] = uint8_t((idx >> 8) & 0xff);
     tmp[2] = uint8_t(idx & 0xff);
-    std::array<uint8_t, 3> a = hilbert::v1::IndexToPosition(tmp);
+    std::array<uint8_t, 3> a = hilbert::v1::IndexToPosition1(tmp);
     return {a[0],a[1],a[2]};
 }
 
@@ -366,7 +366,7 @@ inline uint64_t hilbert_encode(const int x, const int y, const int z)
     pos[0] = x;
     pos[1] = y;
     pos[2] = z;
-    std::array<uint8_t, 3> tmp = hilbert::v1::PositionToIndex(pos);
+    std::array<uint8_t, 3> tmp = hilbert::v1::PositionToIndex1(pos);
 
     uint64_t idx = (uint32_t(tmp[0]) << 16) +
                    (uint32_t(tmp[1]) << 8) +

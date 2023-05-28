@@ -4,6 +4,14 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include "ivox3d.h"
+// #include "ivox3d_node.hpp"
+
+using PointType = pcl::PointXYZRGB;
+using PointCloudType = pcl::PointCloud<PointType>;
+using CloudPtr = PointCloudType::Ptr;
+using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
+
 
 enum OcType
 {
@@ -106,6 +114,14 @@ public:
 class Octree : public torch::CustomClassHolder
 {
 public:
+// #ifdef IVOX_NODE_TYPE_PHC
+//     using IVoxType = IVox<3, IVoxNodeType::PHC, PointType>;
+// #else
+    // using IVoxType = IVox<3, IVoxNodeType::DEFAULT, PointType>;
+// #endif
+    // using namespace faster_lio
+    using IVoxType = faster_lio::IVox<3, faster_lio::IVoxNodeType::DEFAULT, pcl::PointXYZRGB>;
+    // using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
     Octree();
     // temporal solution
     Octree(int64_t grid_dim, int64_t feat_dim, double voxel_size, std::vector<torch::Tensor> all_pts, std::vector<torch::Tensor> all_colors, std::vector<torch::Tensor> all_pcds, int64_t max_num);
@@ -114,6 +130,7 @@ public:
 
     // allocate voxels
     void insert(torch::Tensor vox,torch::Tensor color,torch::Tensor pcd);
+    void insert_hash(torch::Tensor points,torch::Tensor color);
     double try_insert(torch::Tensor pts);
 
     // find a particular octant
@@ -145,6 +162,7 @@ public:
     
     // get voxel centres and childrens
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> get_centres_and_children();
+    std::tuple<torch::Tensor> get_centres();
 
 public:
     int size_;
@@ -158,12 +176,17 @@ public:
     std::vector<torch::Tensor> all_pts;
     std::vector<torch::Tensor> all_colors;
     std::vector<torch::Tensor> all_pcds;
-
+    // using IVoxType = IVox<3, IVoxNodeType::DEFAULT, PointType>;        
+    // IVoxType::Options ivox_options_;
+    // std::shared_ptr<IVoxType> ivox_ = nullptr; 
   
 
 private:
+    // CloudPtr PCL_{new PointCloudType()}; 
     std::set<uint64_t> all_keys;
-    
+    IVoxType::Options ivox_options_;
+
+    std::shared_ptr<IVoxType> ivox_ = nullptr; 
     // std::shared_ptr<Octant> root_;
     Octant *root_;
     // static int feature_index;

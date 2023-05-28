@@ -264,12 +264,14 @@
 #     # Compute weights based on distances.
 #     # np.savetxt('test_distances.txt', distances.detach().cpu().numpy())
 #     print("\033[0;33;40m",'distances',distances, "\033[0m")
-#     weights = torch.softmax(-(distances*distances), dim=-1)  # Shape: (M, N)
+#     weights = torch.softmax(-(distances), dim=-1)  # Shape: (M, N)
 #     print("\033[0;33;40m",'weights',weights, "\033[0m")
+#     print("\033[0;33;40m",'weights.shape',weights.shape, "\033[0m")
+#     print("\033[0;33;40m",'weights.unsqueeze(-1)',weights.unsqueeze(-1), "\033[0m")
     
 #     # print("\033[0;33;40m",'weights',weights.shape, "\033[0m")
 #     # print("\033[0;33;40m",'weights.unsqueeze(-1) ',(weights.unsqueeze(-1) ).shape, "\033[0m")
-#     # print("\033[0;33;40m",'features',features.shape, "\033[0m")
+#     print("\033[0;33;40m",'features',features, "\033[0m")
 #     # Compute weighted average of features.
 #     sample_features = torch.sum(weights.unsqueeze(-1) * features, dim=1)  # Shape: (M, 64)
 
@@ -280,13 +282,14 @@
 #                          [1,8,3,2,4,5],[1,8,3,2,4,5],
 #                          [1,8,3,2,4,5],[1,8,3,2,4,5],
 #                          [1,8,3,2,4,5],[1,8,3,2,4,5]]]).float()
-# positions = torch.tensor([[[1,8,5],[1,8,4],[1,8,3],
+# positions = torch.tensor([[[1,8,5],[1,8,3],[1,8,3],
 #                            [1,8,3],[1,8,3],[1,8,3],
 #                            [1,8,3],[1,8,3]]]).float()
 # sample = torch.tensor([[1,8,3]]).float()
+# print("\033[0;33;40m",'sample',sample.shape, "\033[0m")
 # print("\033[0;33;40m",'feature',feature.shape, "\033[0m")
 # print("\033[0;33;40m",'positions',positions.shape, "\033[0m")
-# print("\033[0;33;40m",'sample',sample.shape, "\033[0m")
+# # print("\033[0;33;40m",'sample',sample.shape, "\033[0m")
 # features = compute_sample_features(sample,positions, feature)
 # print("\033[0;33;40m",'sample features',features.shape, "\033[0m")
 # print("\033[0;33;40m",'sample features',features, "\033[0m")
@@ -306,7 +309,8 @@
 # dis = torch.tensor([[1,8,3,2,4,5,6,7],[1,8,3,2,4,5,6,7],[1,8,3,2,4,5,6,7]]).float()
 # print("\033[0;33;40m",'dis',dis, "\033[0m")
 # weights = torch.softmax(-dis, dim=-1)
-# print("\033[0;33;40m",'weights',weights[0], "\033[0m")
+# weights1 = dis/ 
+# print("\033[0;33;40m",'weights',weights, "\033[0m")
 
 # ============== pcd feature cal test=============
 # import torch
@@ -528,26 +532,26 @@
 # encoding = positional_encoding_3d(x, y, z, d)
 # print(encoding)
 
-import torch
+# import torch
 
-def encoding_3d(pos, d):
-    encoding = torch.zeros(pos.shape[0],pos.shape[1],d)
-    # print("\033[0;33;40m",'encoding',encoding.shape, "\033[0m")
-    for i in range(d//2):
-        x = 1/10000**(2*i/d)
-        encoding[:,:,2*i] = torch.sum(torch.sin(pos * x),dim = -1)
-        encoding[:,:,2*i+1] = torch.sum(torch.cos(pos * x),dim = -1)
-    return encoding
+# def encoding_3d(pos, d):
+#     encoding = torch.zeros(pos.shape[0],pos.shape[1],d)
+#     # print("\033[0;33;40m",'encoding',encoding.shape, "\033[0m")
+#     for i in range(d//2):
+#         x = 1/10000**(2*i/d)
+#         encoding[:,:,2*i] = torch.sum(torch.sin(pos * x),dim = -1)
+#         encoding[:,:,2*i+1] = torch.sum(torch.cos(pos * x),dim = -1)
+#     return encoding
 
-d = 16 # 编码向量的维度
-# x, y, z = 10, 20, 30  # 三维位置
-pos = torch.tensor([[[1,2,3],
-                   [1,2,4],
-                   [1,2,5],
-                   [1,2,6],
-                   [1,2,7],
-                   [1,2,6],
-                   [1,2,6],
-                   [1,2,6]]])
-encoding = encoding_3d(pos, d)
-print(encoding)
+# d = 16 # 编码向量的维度
+# # x, y, z = 10, 20, 30  # 三维位置
+# pos = torch.tensor([[[1,2,3],
+#                    [1,2,4],
+#                    [1,2,5],
+#                    [1,2,6],
+#                    [1,2,7],
+#                    [1,2,6],
+#                    [1,2,6],
+#                    [1,2,6]]])
+# encoding = encoding_3d(pos, d)
+# print(encoding)
