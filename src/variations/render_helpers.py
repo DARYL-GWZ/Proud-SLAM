@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 from time import sleep
 
 
-flag = 1
+flag = 0
 def ray(ray_start, ray_dir, depths):
     return ray_start + ray_dir * depths
 
@@ -363,7 +363,7 @@ def render_rays(
         profiler=None,
         return_raw=False
 ):
-
+    global flag
     centres = map_states["voxel_center_xyz"]
     childrens = map_states["voxel_structure"]
     # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
@@ -398,7 +398,13 @@ def render_rays(
     rays_d = rays_d[ray_mask].reshape(-1, 3)
     # ---------rays_o torch.Size([1024, 3]) 
     # ---------rays_d torch.Size([1024, 3])
+
     
+    np.savetxt(f'vox_{flag}_rays_o.txt', rays_o.detach().cpu().numpy())
+    np.savetxt(f'vox_{flag}_rays_d.txt', rays_d.detach().cpu().numpy())
+    flag = flag + 1
+    print("\033[0;33;40m",'rays_o',rays_o.shape, "\033[0m")
+    print("\033[0;33;40m",'rays_d',rays_d.shape, "\033[0m")
     if profiler is not None:
         profiler.tick("ray_sample")
     # sample configure caculation------计算各个ray上采样点的深度和有效采样点
@@ -456,7 +462,7 @@ def render_rays(
     field_outputs = []
     if chunk_size < 0:
         chunk_size = num_points
-    global flag
+    
     # samples_valid[sampled_point_xyz] torch.Size([20125, 3]) 
     # print("\033[0;33;40m",'samples_valid[sampled_point_xyz]',samples_valid['sampled_point_xyz'].shape, "\033[0m")
     # print("\033[0;33;40m",'map_states["voxel_center_xyz"]',map_states["voxel_center_xyz"].shape, "\033[0m")

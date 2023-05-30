@@ -51,16 +51,28 @@ class AABBRayIntersect(Function):
     def forward(ctx, voxelsize, n_max, points, ray_start, ray_dir):
         # HACK: speed-up ray-voxel intersection by batching...
         # HACK: avoid out-of-memory
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         G = min(2048, int(2 * 10 ** 9 / points.numel()))
+        # print("\033[0;33;40m",'G',G, "\033[0m")
+        # print("\033[0;33;40m",'ray_start',ray_start.shape, "\033[0m")
+        
         S, N = ray_start.shape[:2]
         K = int(np.ceil(N / G))
         H = K * G
         if H > N:
             ray_start = torch.cat([ray_start, ray_start[:, : H - N]], 1)
             ray_dir = torch.cat([ray_dir, ray_dir[:, : H - N]], 1)
+        # print("\033[0;33;40m",'S G, K',S ,G, K, "\033[0m")
         ray_start = ray_start.reshape(S * G, K, 3)
         ray_dir = ray_dir.reshape(S * G, K, 3)
-        points = points.expand(S * G, *points.size()[1:]).contiguous()
+        # print("\033[0;33;40m",'*oo points.size()[1:]',*points.size(), "\033[0m")
+        # print("\033[0;33;40m",'S * G',S * G, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        
+        points = points.expand(S * G, *points.size()).contiguous()
+        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        print("\033[0;33;40m",'ray_dir',ray_dir.shape, "\033[0m")
+        print("\033[0;33;40m",'ray_start',ray_start.shape, "\033[0m")
 
         inds, min_depth, max_depth = _ext.aabb_intersect(
             ray_start.float(), ray_dir.float(), points.float(), voxelsize, n_max
@@ -100,15 +112,26 @@ class SparseVoxelOctreeRayIntersect(Function):
     def forward(ctx, voxelsize, n_max, points, children, ray_start, ray_dir):
         # HACK: avoid out-of-memory
         G = min(256, int(2 * 10 ** 9 / (points.numel() + children.numel())))
+        # print("\033[0;33;40m",'ray_start',ray_start.shape, "\033[0m")
+        # ray_start torch.Size([1, 1024, 3]) 
         S, N = ray_start.shape[:2]
         K = int(np.ceil(N / G))
         H = K * G
         if H > N:
             ray_start = torch.cat([ray_start, ray_start[:, : H - N]], 1)
             ray_dir = torch.cat([ray_dir, ray_dir[:, : H - N]], 1)
+        # print("\033[0;33;40m",'S G, K',S ,G, K, "\033[0m")
+        # ray_start torch.Size([1, 1024, 3]) 
+        # S G, K 1 256 4 
         ray_start = ray_start.reshape(S * G, K, 3)
         ray_dir = ray_dir.reshape(S * G, K, 3)
+        # print("\033[0;33;40m",'*oo points.size()[1:]',*points.size()[1:], "\033[0m")
+        # print("\033[0;33;40m",'S * G',S * G, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        
         points = points.expand(S * G, *points.size()).contiguous()
+        # print("\033[0;33;40m",'expand points',points.shape, "\033[0m")
+        
         children = children.expand(S * G, *children.size()).contiguous()
         inds, min_depth, max_depth = _ext.svo_intersect(
             ray_start.float(),
@@ -534,6 +557,7 @@ def splitting_points(point_xyz, point_feats, values, half_voxel):
 @torch.no_grad()
 def ray_intersect_vox(ray_start, ray_dir, flatten_centers, flatten_children, voxel_size, max_hits, max_distance=10.0):
     # ray-voxel intersection
+    print("\033[0;33;40m",'ray_start11',ray_start.shape, "\033[0m")
     max_hits_temp = 50
     pts_idx, min_depth, max_depth = svo_ray_intersect(
         voxel_size,
@@ -574,6 +598,7 @@ def ray_intersect_vox(ray_start, ray_dir, flatten_centers, flatten_children, vox
 def ray_intersect_vox_AABB(ray_start, ray_dir, flatten_centers, voxel_size, max_hits, max_distance=10.0):
     # ray-voxel intersection
     max_hits_temp = 50
+    print("\033[0;33;40m",'hash flatten_centers',flatten_centers.shape, "\033[0m")
     pts_idx, min_depth, max_depth = aabb_ray_intersect(
         voxel_size,
         max_hits_temp,

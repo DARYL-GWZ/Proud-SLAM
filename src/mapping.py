@@ -275,7 +275,10 @@ class Mapping:
         # test the input information
         # np.savetxt(f'pcd_{self.flag}_pose.txt', pose.detach().cpu().numpy())
         # np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
-        # np.savetxt(f'vox_{self.flag}_points.txt', points.detach().cpu().numpy())
+        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        np.savetxt(f'vox_{self.flag}_points.txt', points.detach().cpu().numpy())
+        np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
+        self.flag = self.flag + 1
         # np.savetxt(f'pcd_{self.flag}_voxels.txt', voxels.detach().cpu().numpy())
         # print("\033[0;33;40m",'======print over=====', "\033[0m")
         
