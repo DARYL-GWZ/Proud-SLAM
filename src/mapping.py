@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import deepcopy,copy
 import random
 from time import sleep
 import numpy as np
@@ -17,7 +17,6 @@ import cv2
 
 torch.classes.load_library(
     "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
-
 
 def get_network_size(net):
     size = 0
@@ -235,8 +234,12 @@ class Mapping:
         return targets
 
     def update_share_data(self, share_data, frameid=None):
+        print("\033[0;33;40m",'update_share_data', "\033[0m")
         share_data.decoder = deepcopy(self.decoder).cpu()
         share_data.points_encoder = deepcopy(self.points_encoder).cpu()
+        # share_data.hash_voxel = deepcopy(self.svo)
+        # print("\033[0;33;40m",'centres',centres.shape, "\033[0m")
+        
         tmp_states = {}
         # print("\033[0;33;40m",'mapping update voxel',self.map_states["voxel_center_xyz"].shape, "\033[0m")
         for k, v in self.map_states.items():
@@ -297,6 +300,8 @@ class Mapping:
     @torch.enable_grad()
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
+        # a = self.svo
+        a = deepcopy(self.svo)
         # print("\033[0;33;40m",'=====mapping print=======', "\033[0m")
         # self.flag = self.flag - 1
         # np.savetxt(f'voxels_{self.flag}.txt', (voxels* self.voxel_size).cpu().numpy())

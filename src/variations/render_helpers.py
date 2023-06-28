@@ -400,11 +400,11 @@ def render_rays(
     # ---------rays_d torch.Size([1024, 3])
 
     
-    np.savetxt(f'vox_{flag}_rays_o.txt', rays_o.detach().cpu().numpy())
-    np.savetxt(f'vox_{flag}_rays_d.txt', rays_d.detach().cpu().numpy())
+    # np.savetxt(f'vox_{flag}_rays_o.txt', rays_o.detach().cpu().numpy())
+    # np.savetxt(f'vox_{flag}_rays_d.txt', rays_d.detach().cpu().numpy())
     flag = flag + 1
-    print("\033[0;33;40m",'rays_o',rays_o.shape, "\033[0m")
-    print("\033[0;33;40m",'rays_d',rays_d.shape, "\033[0m")
+    # print("\033[0;33;40m",'rays_o',rays_o.shape, "\033[0m")
+    # print("\033[0;33;40m",'rays_d',rays_d.shape, "\033[0m")
     if profiler is not None:
         profiler.tick("ray_sample")
     # sample configure caculation------计算各个ray上采样点的深度和有效采样点

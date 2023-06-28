@@ -75,6 +75,10 @@ class IVox {
     void AddPoints(const PointVector& points_to_add);
     // get voxel center
     torch::Tensor get_voxel_center();
+    // get points
+    std::tuple<torch::Tensor,torch::Tensor> get_points_colors();
+    // get voxel center
+    torch::Tensor get_points();
     /// get nn
     bool GetClosestPoint(const PointType& pt, PointType& closest_pt);
 
@@ -211,10 +215,7 @@ size_t IVox<dim, node_type, PointType>::NumValidGrids() const {
     return grids_map_.size();
 }
 
-// template <int dim, IVoxNodeType node_type, typename PointType>
-// size_t IVox<dim, node_type, PointType>::NumPoints() const {
-//     return grids_cache_.size();
-// }
+
 
 template <int dim, IVoxNodeType node_type, typename PointType>
 void IVox<dim, node_type, PointType>::GenerateNearbyGrids() {
@@ -309,6 +310,47 @@ torch::Tensor IVox<dim, node_type, PointType>::get_voxel_center(){
         i++;
     }	
     return all_voxels;
+}
+
+template <int dim, IVoxNodeType node_type, typename PointType>
+size_t IVox<dim, node_type, PointType>::NumPoints() const {
+    int valid_num = 0;
+    for (auto& it : grids_cache_) {
+        int s = it.second.Size();
+        valid_num += s;
+    }
+    return valid_num;
+}
+
+template <int dim, IVoxNodeType node_type, typename PointType>
+std::tuple<torch::Tensor,torch::Tensor> IVox<dim, node_type, PointType>::get_points_colors(){
+    int num = NumPoints();
+    std::cout << "points num = " << num << std::endl;
+
+    torch::Tensor all_points = torch::zeros({num, 3}, dtype(torch::kFloat32));
+    torch::Tensor all_colors = torch::zeros({num, 3}, dtype(torch::kFloat32));
+
+    PointType point;
+    int i = 0;
+    for (auto& it : grids_cache_) {
+        int s = it.second.Size();
+        // std::cout << "s = " << s << std::endl;
+        for(int j = 0; j < s; j++){
+            point = it.second.GetPoint(j);
+            std::vector<float> coords_p = {point.x, point.y,point.z};
+            std::vector<float> coords_c = {point.r, point.g,point.b};
+            // std::cout << "coords_p = (" << coords_p[0] << ", " << coords_p[1]<< ", " << coords_p[2]<< " )"<< std::endl;
+            // std::cout << "coords_c = (" << coords_c[0] << ", " << coords_c[1]<< ", " << coords_c[2]<< " )"<< std::endl;
+            torch::Tensor point = torch::from_blob(coords_p.data(), {3}, dtype(torch::kFloat32));
+            torch::Tensor color = torch::from_blob(coords_c.data(), {3}, dtype(torch::kFloat32));
+            // std::cout << "i = " << i << std::endl;
+            all_points[i] = point;
+            all_colors[i] = color;
+            // std::cout << "all_colors = " << all_colors<< std::endl;
+            i++;
+        }
+    }	
+    return std::make_tuple(all_points, all_colors);
 }
 
 

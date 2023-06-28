@@ -559,47 +559,60 @@
 # ---------------------hash text----------------
 import torch
 import numpy as np
-
+import pandas as pd
 torch.classes.load_library(
     "third_party/sparse_octree/build/lib.linux-x86_64-cpython-310/svo.cpython-310-x86_64-linux-gnu.so")
 
 svo = torch.classes.svo.Octree()
 svo.init(256, 16, 0.2, 8)
 
-points = torch.rand(5, 3)
-colors = torch.rand(5, 3)
-print("\033[0;33;40m",'points',points, "\033[0m")
-
-svo.insert_hash(points.cpu().float(),colors.cpu().int())
-voxels = svo.get_centres()
-# voxels = np.array(voxels)
-print("\033[0;33;40m",'voxels',voxels, "\033[0m")
-
 # points =  torch.tensor([[0.3598, 0.0102, 0.1878],
 #         [0.0422, 0.1299, 0.7723],
 #         [0.4252, 0.9211, 0.5940],
 #         [0.0892, 0.1707, 0.2335],
 #         [0.9214, 0.7422, 0.5353]]) 
-# voxels= torch.tensor([[1.0000, 0.8000, 0.6000],
-#         [0.0000, 0.2000, 0.2000],
-#         [0.4000, 1.0000, 0.6000],
-#         [0.0000, 0.2000, 0.8000],
-#         [0.4000, 0.0000, 0.2000]]) 
 
-for i in range(voxels.shape[0]):
-    print(i)
-    if voxels[i][0] - points[voxels.shape[0]-1-i][0]>0.2 or voxels[i][0] - points[voxels.shape[0]-1-i][0]< -0.2:
-        print("\033[0;33;40m",'匹配失败1',voxels[i][0] - points[-i][0], "\033[0m")
-        print("\033[0;33;40m",'匹配失败1', "\033[0m")
-        break
-    if voxels[i][1] - points[voxels.shape[0]-1-i][1]>0.2 or voxels[i][1] - points[voxels.shape[0]-1-i][1]< -0.2:
-        print("\033[0;33;40m",'匹配失败2', "\033[0m")
-        break
-    if voxels[i][2] - points[voxels.shape[0]-1-i][2]>0.2 or voxels[i][2] - points[voxels.shape[0]-1-i][2]< -0.2:
-        print("\033[0;33;40m",'匹配失败3', "\033[0m")
-        break
-    if i == voxels.shape[0]-1:
-        print("\033[0;33;40m",'匹配成功', "\033[0m")
+# colors =  torch.tensor([[200, 85, 100],
+#         [200, 85, 110],
+#         [200, 85, 102],
+#         [200, 85, 104],
+#         [200, 85, 155]]) 
+
+points_path='/home/guowzh/code/Proud-slam/vox_0_points.txt'
+colors_path='/home/guowzh/code/Proud-slam/vox_0_colors.txt'
+points_data = pd.read_table(points_path,sep=' ',header=None)
+colors_data = pd.read_table(colors_path,sep=' ',header=None)
+points = torch.from_numpy(points_data.values)
+colors = torch.from_numpy(colors_data.values)
+print("\033[0;33;40m",'points',points.shape, "\033[0m")
+print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+
+svo.insert_hash(points.cpu().float(),colors.cpu().int())
+voxels = svo.get_centres()
+points,colors = svo.getPoints()
+
+# voxels = np.array(voxels)
+print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+print("\033[0;33;40m",'points',points.shape, "\033[0m")
+print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+np.savetxt(f'points.txt', points.detach().cpu().numpy())
+np.savetxt(f'colors.txt', colors.detach().cpu().numpy())
+
+
+# for i in range(voxels.shape[0]):
+#     print(i)
+#     if voxels[i][0] - points[voxels.shape[0]-1-i][0]>0.2 or voxels[i][0] - points[voxels.shape[0]-1-i][0]< -0.2:
+#         print("\033[0;33;40m",'匹配失败1',voxels[i][0] - points[-i][0], "\033[0m")
+#         print("\033[0;33;40m",'匹配失败1', "\033[0m")
+#         break
+#     if voxels[i][1] - points[voxels.shape[0]-1-i][1]>0.2 or voxels[i][1] - points[voxels.shape[0]-1-i][1]< -0.2:
+#         print("\033[0;33;40m",'匹配失败2', "\033[0m")
+#         break
+#     if voxels[i][2] - points[voxels.shape[0]-1-i][2]>0.2 or voxels[i][2] - points[voxels.shape[0]-1-i][2]< -0.2:
+#         print("\033[0;33;40m",'匹配失败3', "\033[0m")
+#         break
+#     if i == voxels.shape[0]-1:
+#         print("\033[0;33;40m",'匹配成功', "\033[0m")
 
 
 

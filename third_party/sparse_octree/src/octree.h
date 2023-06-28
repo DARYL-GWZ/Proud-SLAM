@@ -6,7 +6,7 @@
 #include <cmath>
 #include "ivox3d.h"
 // #include "ivox3d_node.hpp"
-
+#include <pcl/filters/voxel_grid.h>
 using PointType = pcl::PointXYZRGB;
 using PointCloudType = pcl::PointCloud<PointType>;
 using CloudPtr = PointCloudType::Ptr;
@@ -146,7 +146,8 @@ public:
     // get all voxels
     torch::Tensor get_voxels();
     std::vector<float> get_voxel_recursive(Octant *n);
-
+    // get all points
+    std::tuple<torch::Tensor, torch::Tensor> getPoints();
     // get leaf voxels
     torch::Tensor get_leaf_voxels();
     std::vector<float> get_leaf_voxel_recursive(Octant *n);
@@ -169,6 +170,7 @@ public:
     int feat_dim_;
     int max_level_;
     int64_t MAX_POINTS_PER_LEAF;
+    // pcl::VoxelGrid<PointType> voxel_scan_;
     // int64_t max_num_ ;
 
     // temporal solution
@@ -190,6 +192,8 @@ private:
     // std::shared_ptr<Octant> root_;
     Octant *root_;
     // static int feature_index;
+    pcl::VoxelGrid<PointType> voxel_scan_;
+    pcl::VoxelGrid<PointType> voxel_scan_;
 
     // internal count function
     std::pair<int64_t, int64_t> count_nodes_internal();

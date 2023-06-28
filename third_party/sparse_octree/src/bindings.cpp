@@ -22,6 +22,7 @@ TORCH_LIBRARY(svo, m)
         .def("has_voxel", &Octree::has_voxel)
         .def("get_centres_and_children", &Octree::get_centres_and_children)
         .def("get_centres", &Octree::get_centres)
+        .def("getPoints", &Octree::getPoints)
         .def_pickle(
         // __getstate__
         [](const c10::intrusive_ptr<Octree>& self) -> std::tuple<int64_t, int64_t, double, std::vector<torch::Tensor>, std::vector<torch::Tensor>, std::vector<torch::Tensor>, int64_t> {

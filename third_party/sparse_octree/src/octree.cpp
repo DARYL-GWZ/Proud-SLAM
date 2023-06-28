@@ -46,7 +46,9 @@ Octree::~Octree()
 void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t max_num)
 {
     MAX_POINTS_PER_LEAF = max_num;
-    std::cout << "MAX_POINTS_PER_LEAF0: " << MAX_POINTS_PER_LEAF<< std::endl;
+    float size = voxel_size/5;
+    voxel_scan_.setLeafSize(size, size, size);
+    // std::cout << "MAX_POINTS_PER_LEAF0: " << MAX_POINTS_PER_LEAF<< std::endl;
     size_ = grid_dim;
     feat_dim_ = feat_dim;
     voxel_size_ = voxel_size; //0.2
@@ -321,7 +323,7 @@ void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
         return;
     }
 
-
+    CloudPtr pcd_downsample_{new PointCloudType()}; 
     CloudPtr PCD_{new PointCloudType()};
     for (int i = 0; i < points.size(0); ++i){
         PointType point;
@@ -334,6 +336,8 @@ void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
         PCD_->points.push_back(point);
         // std::cout << "point " << point << std::endl;
     }
+    // voxel_scan_.setInputCloud(PCD_);
+    // voxel_scan_.filter(*pcd_downsample_);
     ivox_->AddPoints(PCD_->points);
 }
 
@@ -343,6 +347,11 @@ torch::Tensor Octree::get_centres()
     return all_voxels;
 }
 
+std::tuple<torch::Tensor, torch::Tensor> Octree::getPoints()
+{
+    auto all_points_colors = ivox_->get_points_colors();
+    return all_points_colors;
+}
 
 double Octree::try_insert(torch::Tensor pts)
 {

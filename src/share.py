@@ -1,5 +1,5 @@
 from multiprocessing.managers import BaseManager, NamespaceProxy
-from copy import deepcopy
+from copy import deepcopy,copy
 import torch.multiprocessing as mp
 from time import sleep
 import sys
@@ -37,6 +37,7 @@ class ShareData:
         self.__voxels = None
         self.__octree = None
         self.__states = None
+        self.__hash_voxel = None
         self.__tracking_trajectory = []
 
     @property
@@ -95,7 +96,19 @@ class ShareData:
             self.__octree = deepcopy(octree)
             print("========== octree set ==========")
             sys.stdout.flush()
-
+    @property
+    def hash_voxel(self):
+        with lock:
+            return deepcopy(self.__hash_voxel)
+            print("========== hash_voxel get ==========")
+            sys.stdout.flush()
+    
+    @hash_voxel.setter
+    def hash_voxel(self, hash_voxel):
+        with lock:
+            self.__hash_voxel = deepcopy(hash_voxel)
+            print("========== hash_voxel set ==========")
+            sys.stdout.flush()
     @property
     def states(self):
         with lock:
