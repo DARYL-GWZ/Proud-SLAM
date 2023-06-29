@@ -598,7 +598,7 @@ def ray_intersect_vox(ray_start, ray_dir, flatten_centers, flatten_children, vox
 def ray_intersect_vox_AABB(ray_start, ray_dir, flatten_centers, voxel_size, max_hits, max_distance=10.0):
     # ray-voxel intersection
     max_hits_temp = 50
-    print("\033[0;33;40m",'hash flatten_centers',flatten_centers.shape, "\033[0m")
+    # print("\033[0;33;40m",'hash flatten_centers',flatten_centers.shape, "\033[0m")
     pts_idx, min_depth, max_depth = aabb_ray_intersect(
         voxel_size,
         max_hits_temp,

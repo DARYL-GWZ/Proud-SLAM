@@ -234,7 +234,7 @@ class Mapping:
         return targets
 
     def update_share_data(self, share_data, frameid=None):
-        print("\033[0;33;40m",'update_share_data', "\033[0m")
+        # print("\033[0;33;40m",'update_share_data', "\033[0m")
         share_data.decoder = deepcopy(self.decoder).cpu()
         share_data.points_encoder = deepcopy(self.points_encoder).cpu()
         # share_data.hash_voxel = deepcopy(self.svo)
@@ -278,7 +278,7 @@ class Mapping:
         # test the input information
         # np.savetxt(f'pcd_{self.flag}_pose.txt', pose.detach().cpu().numpy())
         # np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
-        print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         np.savetxt(f'vox_{self.flag}_points.txt', points.detach().cpu().numpy())
         np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
         self.flag = self.flag + 1
@@ -301,7 +301,7 @@ class Mapping:
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
         # a = self.svo
-        a = deepcopy(self.svo)
+        # a = deepcopy(self.svo)
         # print("\033[0;33;40m",'=====mapping print=======', "\033[0m")
         # self.flag = self.flag - 1
         # np.savetxt(f'voxels_{self.flag}.txt', (voxels* self.voxel_size).cpu().numpy())

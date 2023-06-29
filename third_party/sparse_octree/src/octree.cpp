@@ -46,8 +46,8 @@ Octree::~Octree()
 void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t max_num)
 {
     MAX_POINTS_PER_LEAF = max_num;
-    float size = voxel_size/5;
-    voxel_scan_.setLeafSize(size, size, size);
+    // float size = voxel_size/5;
+    // voxel_scan_.setLeafSize(size, size, size);
     // std::cout << "MAX_POINTS_PER_LEAF0: " << MAX_POINTS_PER_LEAF<< std::endl;
     size_ = grid_dim;
     feat_dim_ = feat_dim;
@@ -65,7 +65,6 @@ void Octree::init(int64_t grid_dim, int64_t feat_dim, double voxel_size, int64_t
     // auto options = torch::TensorOptions().requires_grad(true);
     // feats_array_ = torch::randn({MAX_NUM_VOXELS, feat_dim}, options) * 0.01;
 }
-
 
 bool Octree::isInSubspace(Point3 point, Subspace subspace,int j) {
     double half_length = subspace.length / 2.0;
@@ -323,7 +322,7 @@ void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
         return;
     }
 
-    CloudPtr pcd_downsample_{new PointCloudType()}; 
+    // CloudPtr pcd_downsample_{new PointCloudType()}; 
     CloudPtr PCD_{new PointCloudType()};
     for (int i = 0; i < points.size(0); ++i){
         PointType point;
@@ -350,6 +349,32 @@ torch::Tensor Octree::get_centres()
 std::tuple<torch::Tensor, torch::Tensor> Octree::getPoints()
 {
     auto all_points_colors = ivox_->get_points_colors();
+    return all_points_colors;
+}
+
+std::tuple<torch::Tensor, torch::Tensor> Octree::getClosePoints(torch::Tensor pts)
+{
+    auto points = pts.accessor<float, 2>();
+    if (points.size(1) != 3)
+        {
+            std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
+        }
+    PointVector cloud;
+    int cur_pts = points.size(0);
+    cloud.resize(cur_pts);
+    for (int i = 0; i < points.size(0); ++i){
+        PointType point;
+        point.x = points[i][0];
+        point.y = points[i][1];
+        point.z = points[i][2];
+        cloud[i]= point;
+        // std::cout << "cloud " << cloud[i].x<< ", "<< cloud[i].y << ", "<< cloud[i].z << std::endl;
+    }
+    // std::cout << "cloud " << cloud[0].x<< ", "<< cloud[0].y << ", "<< cloud[0].z << std::endl;
+    // std::cout << "cloud " << cloud[1].x<< ", "<< cloud[1].y << ", "<< cloud[1].z << std::endl;
+    int k_num = 15;
+    // std::cout << "cloud.size() = " <<cloud.size() << std::endl;
+    auto all_points_colors = ivox_->GetClosestPoint_d(cloud,k_num);
     return all_points_colors;
 }
 

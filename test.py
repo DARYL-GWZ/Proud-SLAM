@@ -586,17 +586,40 @@ points = torch.from_numpy(points_data.values)
 colors = torch.from_numpy(colors_data.values)
 print("\033[0;33;40m",'points',points.shape, "\033[0m")
 print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
+# points =  torch.tensor([[0.3598, 0.0102, 0.1878],
+#         [0.0422, 0.1299, 0.7723],
+#         [0.4252, 0.9211, 0.5940],
+#         [0.0892, 0.1707, 0.2335],
+#         [0.9214, 0.7422, 0.5353]]) 
 
+# colors =  torch.tensor([[200, 85, 100],
+#         [200, 85, 110],
+#         [200, 85, 102],
+#         [200, 85, 104],
+#         [200, 85, 155]]) 
+
+q_points =  torch.tensor([[9.12, 9.42, 10.6],
+        [11., 9.9 ,8.5]
+        ]) 
 svo.insert_hash(points.cpu().float(),colors.cpu().int())
 voxels = svo.get_centres()
 points,colors = svo.getPoints()
+clos_points,clos_colors = svo.getClosePoints(q_points)
+
 
 # voxels = np.array(voxels)
 print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
 print("\033[0;33;40m",'points',points.shape, "\033[0m")
 print("\033[0;33;40m",'colors',colors.shape, "\033[0m")
-np.savetxt(f'points.txt', points.detach().cpu().numpy())
-np.savetxt(f'colors.txt', colors.detach().cpu().numpy())
+# print("\033[0;33;40m",'voxels',voxels, "\033[0m")
+# print("\033[0;33;40m",'points',points, "\033[0m")
+# print("\033[0;33;40m",'colors',colors, "\033[0m")
+print("\033[0;33;40m",'clos_points',clos_points, "\033[0m")
+print("\033[0;33;40m",'clos_colors',clos_colors, "\033[0m")
+# print("\033[0;33;40m",'clos_points',clos_points-q_points[0,:], "\033[0m")
+# 0.1495 0.1561 0.1694 
+# np.savetxt(f'points.txt', points.detach().cpu().numpy())
+# np.savetxt(f'colors.txt', colors.detach().cpu().numpy())
 
 
 # for i in range(voxels.shape[0]):

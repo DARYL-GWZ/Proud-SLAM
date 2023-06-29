@@ -197,7 +197,7 @@ def get_features_pcd(samples, map_states, resnet,voxel_size):
     # feats = torch.ones(sampled_xyz.shape[0],16).float().cuda()
     # print("\033[0;33;40m",'===============', "\033[0m")
     # np.savetxt(f'pcd_{flag}_feats.txt', feats.detach().cpu().numpy())
-    flag = flag + 1 
+    # flag = flag + 1 
     # np.savetxt('feats_pcd.txt', feats.detach().cpu().numpy())
     # print("\033[0;33;40m",'feats_pcd',feats.shape, "\033[0m")
 
@@ -400,8 +400,8 @@ def render_rays(
     # ---------rays_d torch.Size([1024, 3])
 
     
-    # np.savetxt(f'vox_{flag}_rays_o.txt', rays_o.detach().cpu().numpy())
-    # np.savetxt(f'vox_{flag}_rays_d.txt', rays_d.detach().cpu().numpy())
+    np.savetxt(f'vox_{flag}_rays_o.txt', rays_o.detach().cpu().numpy())
+    np.savetxt(f'vox_{flag}_rays_d.txt', rays_d.detach().cpu().numpy())
     flag = flag + 1
     # print("\033[0;33;40m",'rays_o',rays_o.shape, "\033[0m")
     # print("\033[0;33;40m",'rays_d',rays_d.shape, "\033[0m")

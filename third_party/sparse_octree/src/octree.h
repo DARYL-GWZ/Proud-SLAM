@@ -6,7 +6,7 @@
 #include <cmath>
 #include "ivox3d.h"
 // #include "ivox3d_node.hpp"
-#include <pcl/filters/voxel_grid.h>
+// #include <pcl/filters/voxel_grid.h>
 using PointType = pcl::PointXYZRGB;
 using PointCloudType = pcl::PointCloud<PointType>;
 using CloudPtr = PointCloudType::Ptr;
@@ -148,6 +148,8 @@ public:
     std::vector<float> get_voxel_recursive(Octant *n);
     // get all points
     std::tuple<torch::Tensor, torch::Tensor> getPoints();
+    // get close points
+    std::tuple<torch::Tensor, torch::Tensor> getClosePoints(torch::Tensor pts);
     // get leaf voxels
     torch::Tensor get_leaf_voxels();
     std::vector<float> get_leaf_voxel_recursive(Octant *n);
@@ -192,8 +194,8 @@ private:
     // std::shared_ptr<Octant> root_;
     Octant *root_;
     // static int feature_index;
-    pcl::VoxelGrid<PointType> voxel_scan_;
-    pcl::VoxelGrid<PointType> voxel_scan_;
+    // pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
+    // pcl::VoxelGrid<PointType> voxel_scan_;
 
     // internal count function
     std::pair<int64_t, int64_t> count_nodes_internal();

@@ -79,14 +79,18 @@ class IVox {
     std::tuple<torch::Tensor,torch::Tensor> get_points_colors();
     // get voxel center
     torch::Tensor get_points();
-    /// get nn
+    /// get nn 根据一个点获得其1个近邻点
     bool GetClosestPoint(const PointType& pt, PointType& closest_pt);
 
-    /// get nn with condition
-    bool GetClosestPoint(const PointType& pt, PointVector& closest_pt, int max_num = 5, double max_range = 5.0);
+    /// get knn 根据一个点获得其K个近邻点
+    bool GetClosestPoint(const PointType& pt, PointVector& closest_pt, int max_num = 10, double max_range = 5.0);
 
-    /// get nn in cloud
+    /// get knn in cloud 根据一组点获得其对应的1个近邻点
     bool GetClosestPoint(const PointVector& cloud, PointVector& closest_cloud);
+    
+    /// get knn in cloud 根据一组点获得其对应的K个近邻点
+    std::tuple<torch::Tensor,torch::Tensor> GetClosestPoint_d(const PointVector& cloud, int k_num = 10);
+
 
     /// get number of points
     size_t NumPoints() const;
@@ -113,6 +117,7 @@ class IVox {
 
 template <int dim, IVoxNodeType node_type, typename PointType>
 bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, PointType& closest_pt) {
+    std::cout << "intro func222 "  << std::endl;
     std::vector<DistPoint> candidates;
     auto key = Pos2Grid(ToEigen<float, dim>(pt));
     std::for_each(nearby_grids_.begin(), nearby_grids_.end(), [&key, &candidates, &pt, this](const KeyType& delta) {
@@ -139,9 +144,10 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
 template <int dim, IVoxNodeType node_type, typename PointType>
 bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, PointVector& closest_pt, int max_num,
                                                       double max_range) {
+    // std::cout << "intro func "  << std::endl;
     std::vector<DistPoint> candidates;
     candidates.reserve(max_num * nearby_grids_.size());
-
+    //  计算所属体素的key
     auto key = Pos2Grid(ToEigen<float, dim>(pt));
 
 // #define INNER_TIMER
@@ -152,7 +158,7 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
         stats["nth"] = std::vector<int64_t>();
     }
 #endif
-
+    //找到所有的邻居体素，并获得每个体素内的近邻点
     for (const KeyType& delta : nearby_grids_) {
         auto dkey = key + delta;
         auto iter = grids_map_.find(dkey);
@@ -176,7 +182,7 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
 #ifdef INNER_TIMER
     auto t1 = std::chrono::high_resolution_clock::now();
 #endif
-
+    //对所有候选近邻排序，得到最终的k个
     if (candidates.size() <= max_num) {
     } else {
         std::nth_element(candidates.begin(), candidates.begin() + max_num - 1, candidates.end());
@@ -245,6 +251,7 @@ void IVox<dim, node_type, PointType>::GenerateNearbyGrids() {
 
 template <int dim, IVoxNodeType node_type, typename PointType>
 bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointVector& cloud, PointVector& closest_cloud) {
+    std::cout << "intro func111 "  << std::endl;
     std::vector<size_t> index(cloud.size());
     for (int i = 0; i < cloud.size(); ++i) {
         index[i] = i;
@@ -260,6 +267,47 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointVector& cloud, 
         }
     });
     return true;
+}
+
+template <int dim, IVoxNodeType node_type, typename PointType>
+std::tuple<torch::Tensor,torch::Tensor> IVox<dim, node_type, PointType>::GetClosestPoint_d(const PointVector& cloud, int k_num) {
+    // std::vector<size_t> index(cloud.size());
+    // for (int i = 0; i < cloud.size(); ++i) {
+    //     index[i] = i;
+    // }
+    int num = cloud.size();
+    torch::Tensor all_points = torch::zeros({num,k_num, 3}, dtype(torch::kFloat32));
+    torch::Tensor all_colors = torch::zeros({num,k_num, 3}, dtype(torch::kFloat32));
+   
+    torch::Tensor xyz_array = torch::zeros({k_num, 3}, dtype(torch::kFloat32));
+    torch::Tensor color_array = torch::zeros({k_num, 3}, dtype(torch::kFloat32));
+    // std::cout << "cloud.size() = " <<cloud.size() << std::endl;
+    int j = 0;
+    for(int idx = 0; idx < num; idx++) 
+    {
+        PointVector pt;
+        // bool a = GetClosestPoint(cloud[idx], pt, k_num);
+        // std::cout << "a = " <<a << std::endl;
+        if (GetClosestPoint(cloud[idx], pt, k_num)) {
+            // closest_cloud[idx] = pt;
+            // std::cout << "pt.size() = " <<pt.size() << std::endl;
+            for (int i = 0; i < pt.size(); ++i) {
+                xyz_array[i][0]=pt[i].x;
+                xyz_array[i][1]=pt[i].y;
+                xyz_array[i][2]=pt[i].z;
+                color_array[i][0]=pt[i].r;
+                color_array[i][1]=pt[i].g;
+                color_array[i][2]=pt[i].b;
+                // std::cout << "i = " << i << std::endl;
+            }
+            all_points[j] = xyz_array; 
+            all_colors[j] = color_array;  
+            j++;
+        } else {
+            j++;
+        }
+    };
+    return std::make_tuple(all_points, all_colors);
 }
 
 template <int dim, IVoxNodeType node_type, typename PointType>
@@ -284,9 +332,11 @@ void IVox<dim, node_type, PointType>::AddPoints(const PointVector& points_to_add
                 grids_cache_.pop_back();
             }
         } else {
-            iter->second->second.InsertPoint(pt);
-            grids_cache_.splice(grids_cache_.begin(), grids_cache_, iter->second);
-            grids_map_[key] = grids_cache_.begin();
+            if(iter->second->second.Size() <= 10){
+                iter->second->second.InsertPoint(pt);
+                grids_cache_.splice(grids_cache_.begin(), grids_cache_, iter->second);
+                grids_map_[key] = grids_cache_.begin();
+            }
         }
     });
 }
@@ -304,7 +354,6 @@ torch::Tensor IVox<dim, node_type, PointType>::get_voxel_center(){
         // std::cout << "get center = (" << center.x << ", " << center.y<< ", " << center.z<< " )"<< std::endl;
        
         std::vector<float> coords = {center.x, center.y,center.z};
-        // std::vector<float> coords = {key[0], key[1],key[2]};
         torch::Tensor voxel = torch::from_blob(coords.data(), {3}, dtype(torch::kFloat32));
         all_voxels[i] = voxel;
         i++;
@@ -325,8 +374,7 @@ size_t IVox<dim, node_type, PointType>::NumPoints() const {
 template <int dim, IVoxNodeType node_type, typename PointType>
 std::tuple<torch::Tensor,torch::Tensor> IVox<dim, node_type, PointType>::get_points_colors(){
     int num = NumPoints();
-    std::cout << "points num = " << num << std::endl;
-
+    // std::cout << "points num = " << num << std::endl;
     torch::Tensor all_points = torch::zeros({num, 3}, dtype(torch::kFloat32));
     torch::Tensor all_colors = torch::zeros({num, 3}, dtype(torch::kFloat32));
 
