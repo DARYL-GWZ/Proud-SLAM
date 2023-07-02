@@ -114,7 +114,9 @@ class Decoder(nn.Module):
         # self.output_linear = nn.Linear(width, 4)
 
     def get_values(self, x):
+        # print("\033[0;33;40m",'x',x.shape, "\033[0m")
         x = self.pe(x)
+        # print("\033[0;33;40m",'x2',x.shape, "\033[0m")
         h = x
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)

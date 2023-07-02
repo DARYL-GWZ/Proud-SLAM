@@ -76,9 +76,7 @@ class IVox {
     // get voxel center
     torch::Tensor get_voxel_center();
     // get points
-    std::tuple<torch::Tensor,torch::Tensor> get_points_colors();
-    // get voxel center
-    torch::Tensor get_points();
+    std::tuple<torch::Tensor,torch::Tensor> get_points();
     /// get nn 根据一个点获得其1个近邻点
     bool GetClosestPoint(const PointType& pt, PointType& closest_pt);
 
@@ -372,7 +370,7 @@ size_t IVox<dim, node_type, PointType>::NumPoints() const {
 }
 
 template <int dim, IVoxNodeType node_type, typename PointType>
-std::tuple<torch::Tensor,torch::Tensor> IVox<dim, node_type, PointType>::get_points_colors(){
+std::tuple<torch::Tensor,torch::Tensor> IVox<dim, node_type, PointType>::get_points(){
     int num = NumPoints();
     // std::cout << "points num = " << num << std::endl;
     torch::Tensor all_points = torch::zeros({num, 3}, dtype(torch::kFloat32));

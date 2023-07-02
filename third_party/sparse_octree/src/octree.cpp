@@ -101,15 +101,16 @@ std::vector<Subspace> Octree::divideSpace(Point3 center, double length) {
     return subspaces;
 }
 
+
 void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
 {
-    std::cout << "Octree::insert !!!!"   << std::endl;
+    // std::cout << "Octree::insert !!!!"   << std::endl;
 
     // temporal solution
-    all_pts.push_back(pts);
-    all_colors.push_back(color);
-    all_pcds.push_back(pcd);
-
+    // all_pts.push_back(pts);
+    // all_colors.push_back(color);
+    // all_pcds.push_back(pcd);
+    bool create_new_node = false;
     if (root_ == nullptr)
     {
         std::cout << "Octree not initialized!" << std::endl;
@@ -173,74 +174,16 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                     tmp->side_ = edge;
                     tmp->is_leaf_ = is_leaf;
                     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
-                    // if (is_leaf) {
-                    // Point3 centre = {
-                    //     (x + edge / 2) * voxel_size_,
-                    //     (y + edge / 2) * voxel_size_,
-                    //     (z + edge / 2) * voxel_size_,
-                    // };
-                    Point3 centre = {
-                        x * voxel_size_,
-                        y * voxel_size_,
-                        z * voxel_size_
-                    };
+
                     // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")"
-                    //     << "edge=  " << edge << ","<< "voxel_size_=  " << voxel_size_ 
-                    //     << "xyz=(" << x << ","<< y << "," << z << ")"<< std::endl;
-                    // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")"
-
-                    // if(flag1 < 10){
-                    //     std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")"
-                    //     << "edge=  " << edge << ","<< "voxel_size_=  " << voxel_size_ 
-                    //     << "xyz=(" << x << ","<< y << "," << z << ")"<< std::endl;
-                    //     flag2 ++;
-                    // }
-                    tmp->subspaces_ = divideSpace(centre, edge*voxel_size_);
-                    // std::cout << "2"  << std::endl;
-                    if (tmp->point_data_color.size() < MAX_POINTS_PER_LEAF){
-                        // std::cout << "3"  << std::endl;
-                        for(int k=0; k<8; k++) {
-                            
-                            Point3 point = {pcds[i][0],pcds[i][1],pcds[i][2]};
-
-                            if(isInSubspace(point, tmp->subspaces_[k],j)) {
-                                // if(flag1 < 50){
-                                    // std::cout << "points"<< "("<< points[i][0] << "," << points[i][1] << "," << points[i][2] << ")"<< std::endl;
-                                    // std::cout << "xyz"<< "("<< x << "," << y << "," << z << ")"<< std::endl;
-                                    // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")" << std::endl;
-                                    // std::cout << "新节点isInSubspace=  "  <<isInSubspace(point, tmp->subspaces_[k])                                    << "pcds"<< "("<< pcds[i][0] << "," << pcds[i][1] << "," << pcds[i][2] << ")" 
-                                    //     << "edge=  " << edge << std::endl;
-                                    // flag1 ++;
-                                // }
-                                // 如果该子空间中已经有点，则替换掉该点
-                                if(tmp->subspaces_[k].point.x != 0.0 || tmp->subspaces_[k].point.y != 0.0 || tmp->subspaces_[k].point.z != 0.0) {
-                                    tmp->subspaces_[k].point = point;
-                                    // std::cout << "新节点替换pcd"  << std::endl;
-
-                                }
-                                // 否则将该点存入对应的子空间中
-                                else {
-                                    // if(flag1 < 50){
-                                    // std::cout << "新节点添加新pcd"  << std::endl;
-                                    // std::cout << "------新节点-------"  << std::endl;
-
-                                        // }
-                                    tmp->subspaces_[k].point = point;
-                                    float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
-                                    tmp->point_data_x.push_back(pcds[i][0]);  
-                                    tmp->point_data_y.push_back(pcds[i][1]);  
-                                    tmp->point_data_z.push_back(pcds[i][2]);  
-                                    tmp->point_data_color.push_back(color); 
-                                    // printf("新 point: (%f,%f,%f)\n" ,point.x, point.y,point.z);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    // }
-
+                    float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
+                    tmp->point_data_x.push_back(pcds[i][0]);  
+                    tmp->point_data_y.push_back(pcds[i][1]);  
+                    tmp->point_data_z.push_back(pcds[i][2]);  
+                    tmp->point_data_color.push_back(color);  
                     n->children_mask_ = n->children_mask_ | (1 << childid);
                     n->child(childid) = tmp;
+                    create_new_node = true;
                 }
                 else
                 {   
@@ -250,52 +193,218 @@ void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
                     // if (tmp->is_leaf_) {
                     if (tmp->point_data_color.size()  < MAX_POINTS_PER_LEAF ){
                         // std::cout << "6"  << std::endl;
-                        for(int k=0; k<8; k++) {
-                            
-                            Point3 point = {pcds[i][0],pcds[i][1],pcds[i][2]};
-                          
-                            // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")" << std::endl;
-                            if(isInSubspace(point, tmp->subspaces_[k],j)) {
-                                // if(flag2 < 50){
-                                // std::cout << "旧节点isInSubspace=  "  <<isInSubspace(point, tmp->subspaces_[k])
-                                    // << "("<< pcds[i][0] << "," << pcds[i][1] << "," << pcds[i][2] << ")" << std::endl;
-                                    // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")" << std::endl;
-                                    // flag2 ++;
-                                // }
-                            // 如果该子空间中已经有点，则替换掉该点
-                                if(tmp->subspaces_[k].point.x != 0.0 || tmp->subspaces_[k].point.y != 0.0 || tmp->subspaces_[k].point.z != 0.0) {
-                                    tmp->subspaces_[k].point = point;
-                                    // std::cout << "旧节点替换pcd"  << std::endl;
-                                }
-                            // 否则将该点存入对应的子空间中
-                                else {
-                                    // if(flag2 < 50){
-                                    // std::cout << "旧节点添加新pcd"  << std::endl;
-                                    // }
-                                    // std::cout << "8"  << std::endl;
-                                    tmp->subspaces_[k].point = point;
-                                    float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
-                                    tmp->point_data_x.push_back(pcds[i][0]);  
-                                    tmp->point_data_y.push_back(pcds[i][1]);  
-                                    tmp->point_data_z.push_back(pcds[i][2]);  
-                                    tmp->point_data_color.push_back(color); 
-                                    // printf("新 point: (%f,%f,%f)\n" ,point.x, point.y,point.z);
-                                    break;
-                                }
-                            }
-                        }
+                        float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
+                        tmp->point_data_x.push_back(pcds[i][0]);  
+                        tmp->point_data_y.push_back(pcds[i][1]);  
+                        tmp->point_data_z.push_back(pcds[i][2]);  
+                        tmp->point_data_color.push_back(color);       
                     }
-                    // }
                 }
-            n = tmp;
-            }
+                n = tmp;
+            } 
         }
     }
+    if (create_new_node)
+    all_pts.push_back(pts);
+    all_colors.push_back(color);
+    all_pcds.push_back(pcd);
 }
+
+// void Octree::insert(torch::Tensor pts, torch::Tensor color, torch::Tensor pcd)
+// {
+//     // std::cout << "Octree::insert !!!!"   << std::endl;
+
+//     // temporal solution
+//     all_pts.push_back(pts);
+//     all_colors.push_back(color);
+//     all_pcds.push_back(pcd);
+
+//     if (root_ == nullptr)
+//     {
+//         std::cout << "Octree not initialized!" << std::endl;
+//     }
+//     // std::cout << "MAX_POINTS_PER_LEAF1: " << MAX_POINTS_PER_LEAF<< std::endl;
+
+//     auto points = pts.accessor<int, 2>();
+//     auto colors = color.accessor<int, 2>();
+//     auto pcds = pcd.accessor<float, 2>();
+
+//     if (points.size(1) != 3)
+//     {
+//         std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
+//         return;
+//     }
+//     if (colors.size(1) != 3)
+//     {
+//         std::cout << "Colors dimensions mismatch: inputs are " << colors.size(1) << " expect 3" << std::endl;
+//         return;
+//     }
+//     if (pcds.size(1) != 3)
+//     {
+//         std::cout << "pcd dimensions mismatch: inputs are " << pcds.size(1) << " expect 3" << std::endl;
+//         return;
+//     }
+    
+//     for (int i = 0; i < points.size(0); ++i)
+//     {
+//         for (int j = 0; j < 8; ++j)
+//         {
+//             int x = points[i][0] + incr_x[j];
+//             int y = points[i][1] + incr_y[j];
+//             int z = points[i][2] + incr_z[j];
+//             // int x = points[i][0];
+//             // int y = points[i][1];
+//             // int z = points[i][2];
+//             uint64_t key = encode(x, y, z);
+//             // int j = 0;
+//             all_keys.insert(key);
+//             const unsigned int shift = MAX_BITS - max_level_ - 1;
+//             auto n = root_;
+//             unsigned edge = size_ / 2;
+//             // std::cout << "jj=  " << j << std::endl;
+            
+//             for (int d = 1; d <= max_level_; edge /= 2, ++d)
+//             {
+//                 // std::cout << "层数=  " << d << std::endl;
+//                 const int childid = ((x & edge) > 0) + 2 * ((y & edge) > 0) + 4 * ((z & edge) > 0);
+//                 // std::cout << "Level: " << d << " ChildID: " << childid << std::endl;
+//                 auto tmp = n->child(childid);
+//                 // std::cout << "Level: " << d << " ChildID: " << childid << "tmp: " << tmp << std::endl;
+//                 // std::cout << "tmp" << tmp << std::endl;
+//                 if (!tmp)
+//                 {
+//                     // 新的点不在现有八叉树中，创建新节点
+//                     const uint64_t code = key & MASK[d + shift];
+//                     const bool is_leaf = (d == max_level_);
+//                     // tmp = std::make_shared<Octant>();
+//                     tmp = new Octant();
+//                     tmp->code_ = code;
+//                     tmp->side_ = edge;
+//                     tmp->is_leaf_ = is_leaf;
+//                     tmp->type_ = is_leaf ? (j == 0 ? SURFACE : FEATURE) : NONLEAF;
+//                     // if (is_leaf) {
+//                     // Point3 centre = {
+//                     //     (x + edge / 2) * voxel_size_,
+//                     //     (y + edge / 2) * voxel_size_,
+//                     //     (z + edge / 2) * voxel_size_,
+//                     // };
+//                     Point3 centre = {
+//                         x * voxel_size_,
+//                         y * voxel_size_,
+//                         z * voxel_size_
+//                     };
+//                     // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")"
+//                     //     << "edge=  " << edge << ","<< "voxel_size_=  " << voxel_size_ 
+//                     //     << "xyz=(" << x << ","<< y << "," << z << ")"<< std::endl;
+//                     // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")"
+
+//                     // if(flag1 < 10){
+//                     //     std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")"
+//                     //     << "edge=  " << edge << ","<< "voxel_size_=  " << voxel_size_ 
+//                     //     << "xyz=(" << x << ","<< y << "," << z << ")"<< std::endl;
+//                     //     flag2 ++;
+//                     // }
+//                     tmp->subspaces_ = divideSpace(centre, edge*voxel_size_);
+//                     // std::cout << "2"  << std::endl;
+//                     if (tmp->point_data_color.size() < MAX_POINTS_PER_LEAF){
+//                         // std::cout << "3"  << std::endl;
+//                         for(int k=0; k<8; k++) {
+                            
+//                             Point3 point = {pcds[i][0],pcds[i][1],pcds[i][2]};
+
+//                             if(isInSubspace(point, tmp->subspaces_[k],j)) {
+//                                 // if(flag1 < 50){
+//                                     // std::cout << "points"<< "("<< points[i][0] << "," << points[i][1] << "," << points[i][2] << ")"<< std::endl;
+//                                     // std::cout << "xyz"<< "("<< x << "," << y << "," << z << ")"<< std::endl;
+//                                     // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")" << std::endl;
+//                                     // std::cout << "新节点isInSubspace=  "  <<isInSubspace(point, tmp->subspaces_[k])                                    << "pcds"<< "("<< pcds[i][0] << "," << pcds[i][1] << "," << pcds[i][2] << ")" 
+//                                     //     << "edge=  " << edge << std::endl;
+//                                     // flag1 ++;
+//                                 // }
+//                                 // 如果该子空间中已经有点，则替换掉该点
+//                                 if(tmp->subspaces_[k].point.x != 0.0 || tmp->subspaces_[k].point.y != 0.0 || tmp->subspaces_[k].point.z != 0.0) {
+//                                     tmp->subspaces_[k].point = point;
+//                                     // std::cout << "新节点替换pcd"  << std::endl;
+
+//                                 }
+//                                 // 否则将该点存入对应的子空间中
+//                                 else {
+//                                     // if(flag1 < 50){
+//                                     // std::cout << "新节点添加新pcd"  << std::endl;
+//                                     // std::cout << "------新节点-------"  << std::endl;
+
+//                                         // }
+//                                     tmp->subspaces_[k].point = point;
+//                                     float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
+//                                     tmp->point_data_x.push_back(pcds[i][0]);  
+//                                     tmp->point_data_y.push_back(pcds[i][1]);  
+//                                     tmp->point_data_z.push_back(pcds[i][2]);  
+//                                     tmp->point_data_color.push_back(color); 
+//                                     // printf("新 point: (%f,%f,%f)\n" ,point.x, point.y,point.z);
+//                                     break;
+//                                 }
+//                             }
+//                         }
+//                     }
+//                     // }
+
+//                     n->children_mask_ = n->children_mask_ | (1 << childid);
+//                     n->child(childid) = tmp;
+//                 }
+//                 else
+//                 {   
+//                     if (tmp->type_ == FEATURE && j == 0)
+//                         tmp->type_ = SURFACE;
+
+//                     // if (tmp->is_leaf_) {
+//                     if (tmp->point_data_color.size()  < MAX_POINTS_PER_LEAF ){
+//                         // std::cout << "6"  << std::endl;
+//                         for(int k=0; k<8; k++) {
+                            
+//                             Point3 point = {pcds[i][0],pcds[i][1],pcds[i][2]};
+                          
+//                             // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")" << std::endl;
+//                             if(isInSubspace(point, tmp->subspaces_[k],j)) {
+//                                 // if(flag2 < 50){
+//                                 // std::cout << "旧节点isInSubspace=  "  <<isInSubspace(point, tmp->subspaces_[k])
+//                                     // << "("<< pcds[i][0] << "," << pcds[i][1] << "," << pcds[i][2] << ")" << std::endl;
+//                                     // std::cout << "centre=  " << "("<< centre.x << "," << centre.y << "," << centre.z << ")" << std::endl;
+//                                     // flag2 ++;
+//                                 // }
+//                             // 如果该子空间中已经有点，则替换掉该点
+//                                 if(tmp->subspaces_[k].point.x != 0.0 || tmp->subspaces_[k].point.y != 0.0 || tmp->subspaces_[k].point.z != 0.0) {
+//                                     tmp->subspaces_[k].point = point;
+//                                     // std::cout << "旧节点替换pcd"  << std::endl;
+//                                 }
+//                             // 否则将该点存入对应的子空间中
+//                                 else {
+//                                     // if(flag2 < 50){
+//                                     // std::cout << "旧节点添加新pcd"  << std::endl;
+//                                     // }
+//                                     // std::cout << "8"  << std::endl;
+//                                     tmp->subspaces_[k].point = point;
+//                                     float color = hilbert_encode(colors[i][0], colors[i][1], colors[i][2]);
+//                                     tmp->point_data_x.push_back(pcds[i][0]);  
+//                                     tmp->point_data_y.push_back(pcds[i][1]);  
+//                                     tmp->point_data_z.push_back(pcds[i][2]);  
+//                                     tmp->point_data_color.push_back(color); 
+//                                     // printf("新 point: (%f,%f,%f)\n" ,point.x, point.y,point.z);
+//                                     break;
+//                                 }
+//                             }
+//                         }
+//                     }
+//                     // }
+//                 }
+//             n = tmp;
+//             }
+//         }
+//     }
+// }
 
 void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
 {
-    std::cout << "hash insert !!!!"   << std::endl;
+    // std::cout << "hash insert !!!!"   << std::endl;
 
     // temporal solution
     all_pts.push_back(pts);
@@ -348,7 +457,7 @@ torch::Tensor Octree::get_centres()
 
 std::tuple<torch::Tensor, torch::Tensor> Octree::getPoints()
 {
-    auto all_points_colors = ivox_->get_points_colors();
+    auto all_points_colors = ivox_->get_points();
     return all_points_colors;
 }
 
@@ -359,6 +468,7 @@ std::tuple<torch::Tensor, torch::Tensor> Octree::getClosePoints(torch::Tensor pt
         {
             std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
         }
+    // std::cout << "intro " << std::endl;
     PointVector cloud;
     int cur_pts = points.size(0);
     cloud.resize(cur_pts);
@@ -563,7 +673,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
     auto node_count = count_nodes_internal();
     auto total_count = node_count.first;
     auto leaf_count = node_count.second;
-    std::cout << "total_count" << total_count<< std::endl;
+    // std::cout << "total_count" << total_count<< std::endl;
 
     auto all_voxels = torch::zeros({total_count, 4}, dtype(torch::kFloat32));
     auto all_pointclouds_xyz = torch::zeros({total_count, MAX_POINTS_PER_LEAF, 4}, dtype(torch::kFloat32));

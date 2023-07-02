@@ -59,7 +59,7 @@ class Mapping:
         self.step_size = mapper_specs["step_size"]
         self.step_size = self.step_size * self.voxel_size
         self.max_distance = args.data_specs["max_depth"]
-        # print("\033[0;33;40m",'self.window_size',self.window_size, "\033[0m")
+        # print("\033[0;33;40m",'self.step_size',self.step_size, "\033[0m")
 
         embed_dim = args.decoder_specs["in_dim"]
         use_local_coord = mapper_specs["use_local_coord"]
@@ -279,9 +279,9 @@ class Mapping:
         # np.savetxt(f'pcd_{self.flag}_pose.txt', pose.detach().cpu().numpy())
         # np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
         # print("\033[0;33;40m",'points',points.shape, "\033[0m")
-        np.savetxt(f'vox_{self.flag}_points.txt', points.detach().cpu().numpy())
-        np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
-        self.flag = self.flag + 1
+        # np.savetxt(f'vox_{self.flag}_points.txt', points.detach().cpu().numpy())
+        # np.savetxt(f'vox_{self.flag}_colors.txt', colors.detach().cpu().numpy())
+        # self.flag = self.flag + 1
         # np.savetxt(f'pcd_{self.flag}_voxels.txt', voxels.detach().cpu().numpy())
         # print("\033[0;33;40m",'======print over=====', "\033[0m")
         
@@ -291,6 +291,7 @@ class Mapping:
         # self.svo.insert(voxels.cpu().int(),voxels.cpu().int(),voxels.cpu().float())
         self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
         # print("\033[0;33;40m",'======222======', "\033[0m")
+        # self.svo.insert_hash(points.cpu().float(),colors.cpu().int())
 
         self.update_grid_pcd_features()
 
@@ -300,6 +301,12 @@ class Mapping:
     @torch.enable_grad()
     def update_grid_pcd_features(self):
         voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
+        # voxels_center = self.svo.get_centres()
+        # voxels_center = voxels_center.cuda().float()
+        # points_xyz,points_colors = self.svo.getPoints()
+        # points_xyz = points_xyz.cuda().float()
+        # points_colors = points_colors.cuda().float()
+        
         # a = self.svo
         # a = deepcopy(self.svo)
         # print("\033[0;33;40m",'=====mapping print=======', "\033[0m")
@@ -317,15 +324,20 @@ class Mapping:
         # np.savetxt(f'pcd_color1.txt', pcd_color[:,1,:].cpu().numpy())
         # print("\033[0;33;40m",'---------------', "\033[0m")
         
-        # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
         # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
-        # pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
+        pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         # 将节点坐标从体素顶点移到体素中心
+        
         centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
+        children = torch.cat([children, voxels[:, -1:]], -1)
+        centres = centres.cuda().float()
+        children = children.cuda().int()
+        
         # aa = (pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         # bb = (voxels[:, :3] + voxels[:, -1:] / 2)
         
@@ -337,14 +349,13 @@ class Mapping:
         
         # pcd_centres =  aa + pcd_xyz[:,:, :3] 
 
-        children = torch.cat([children, voxels[:, -1:]], -1)
+
         # pcd_color = pcd_color.cuda()
         # print("\033[0;33;40m",'resnet',self.points_encoder.fc.weight.grad, "\033[0m")
         
         # pcd_features = self.points_encoder(pcd_color).requires_grad_(True).cuda()
         # print("\033[0;33;40m",'features',pcd_features.shape, "\033[0m")
-        centres = centres.cuda().float()
-        children = children.cuda().int()
+
         # pcd_xyz = pcd_xyz.cuda().float()
         # pcd_color = pcd_color.cuda().float()
         
@@ -375,6 +386,10 @@ class Mapping:
         map_states["voxel_vertex_emb"] = self.embeddings
         map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
+        # map_states["hash_voxel_xyz"] = voxels_center
+
+        
+        
         
         # print("\033[0;33;40m",'pcd_xyz',pcd_xyz.shape, "\033[0m")
         

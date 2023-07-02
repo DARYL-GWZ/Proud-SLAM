@@ -70,9 +70,9 @@ class AABBRayIntersect(Function):
         # print("\033[0;33;40m",'points',points.shape, "\033[0m")
         
         points = points.expand(S * G, *points.size()).contiguous()
-        print("\033[0;33;40m",'points',points.shape, "\033[0m")
-        print("\033[0;33;40m",'ray_dir',ray_dir.shape, "\033[0m")
-        print("\033[0;33;40m",'ray_start',ray_start.shape, "\033[0m")
+        # print("\033[0;33;40m",'points',points.shape, "\033[0m")
+        # print("\033[0;33;40m",'ray_dir',ray_dir.shape, "\033[0m")
+        # print("\033[0;33;40m",'ray_start',ray_start.shape, "\033[0m")
 
         inds, min_depth, max_depth = _ext.aabb_intersect(
             ray_start.float(), ray_dir.float(), points.float(), voxelsize, n_max

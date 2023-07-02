@@ -193,8 +193,8 @@ for i in range(0, num_points, chunk_size):
     clos_points,clos_colors = svo.getClosePoints(sampled_xyz.cpu().float())
     print("\033[0;33;40m",'clos_points',clos_points.shape, "\033[0m")
     print("\033[0;33;40m",'clos_colors',clos_colors.shape, "\033[0m")
-    np.savetxt(f'clos_points.txt', clos_points[:,0,:].detach().cpu().numpy())
-    np.savetxt(f'clos_colors.txt', clos_colors[:,0,:].detach().cpu().numpy())
+    np.savetxt(f'clos_points.txt', clos_points[:,14,:].detach().cpu().numpy())
+    np.savetxt(f'clos_colors.txt', clos_colors[:,14,:].detach().cpu().numpy())
     np.savetxt(f'sampled_xyz.txt', sampled_xyz.detach().cpu().numpy())
         
 

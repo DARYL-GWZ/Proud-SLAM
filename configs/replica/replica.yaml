@@ -11,13 +11,13 @@ criteria:
   sdf_truncation: 0.1
 
 resnet_specs:
-  feature_n: 16
+  feature_n: 8
 
 
 decoder_specs:
   depth: 2
   width: 128
-  in_dim: 16
+  in_dim: 32
   skips: []
   embedder: none
   multires: 0

@@ -196,7 +196,7 @@ class Tracking:
             self.sdf_truncation,
             self.max_voxel_hit,
             self.max_distance,
-            chunk_size=5000,
+            chunk_size=20000,
             return_raw=True
         )
 
