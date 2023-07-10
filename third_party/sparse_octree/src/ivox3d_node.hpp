@@ -48,6 +48,8 @@ class IVoxNode {
 
     void InsertPoint(const PointT& pt);
 
+    void InsertIndex(const int idx);
+
     inline bool Empty() const;
 
     inline std::size_t Size() const;
@@ -59,6 +61,8 @@ class IVoxNode {
 
    private:
     std::vector<PointT> points_;
+    std::vector<int> index_;
+
 };
 
 template <typename PointT, int dim = 3>
@@ -122,6 +126,8 @@ void IVoxNode<PointT, dim>::InsertPoint(const PointT& pt) {
     points_.template emplace_back(pt);
 }
 
+
+
 template <typename PointT, int dim>
 bool IVoxNode<PointT, dim>::Empty() const {
     return points_.empty();
@@ -136,6 +142,8 @@ template <typename PointT, int dim>
 PointT IVoxNode<PointT, dim>::GetPoint(const std::size_t idx) const {
     return points_[idx];
 }
+
+
 
 template <typename PointT, int dim>
 int IVoxNode<PointT, dim>::KNNPointByCondition(std::vector<DistPoint>& dis_points, const PointT& point, const int& K,
@@ -294,6 +302,8 @@ template <typename PointT, int dim>
 PointT IVoxNodePhc<PointT, dim>::GetPoint(const std::size_t idx) const {
     return phc_cubes_[idx].GetPoint();
 }
+
+
 
 template <typename PointT, int dim>
 bool IVoxNodePhc<PointT, dim>::NNPoint(const PointT& cur_pt, DistPoint& dist_point) const {

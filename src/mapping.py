@@ -64,6 +64,10 @@ class Mapping:
         embed_dim = args.decoder_specs["in_dim"]
         use_local_coord = mapper_specs["use_local_coord"]
         self.embed_dim = embed_dim - 3 if use_local_coord else embed_dim
+        # print("\033[0;33;40m",'embed_dim',self.embed_dim, "\033[0m")
+        self.embed_dim = int(self.embed_dim /2)
+        # print("\033[0;33;40m",'embed_dim',self.embed_dim, "\033[0m")
+        
         num_embeddings = mapper_specs["num_embeddings"]
         self.mesh_freq = args.debug_args["mesh_freq"]
         self.mesher = MeshExtractor(args)
@@ -289,9 +293,10 @@ class Mapping:
         # print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
         # print("\033[0;33;40m",'----------------', "\033[0m")
         # self.svo.insert(voxels.cpu().int(),voxels.cpu().int(),voxels.cpu().float())
-        self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
+        # self.svo.insert(voxels.cpu().int(),colors.cpu().int(),points.cpu().float())
         # print("\033[0;33;40m",'======222======', "\033[0m")
-        # self.svo.insert_hash(points.cpu().float(),colors.cpu().int())
+        reverse = False
+        self.svo.insert_hash(points.cpu().float(),colors.cpu().int(),reverse)
 
         self.update_grid_pcd_features()
 
@@ -300,7 +305,9 @@ class Mapping:
 # // features是一个N*8的张量，其中N和上面相同。每一行代表一个节点对应体素的八个顶点是否有特征。如果某个顶点有特征，则对应位置为该特征节点在八叉树中的索引；否则为-1。
     @torch.enable_grad()
     def update_grid_pcd_features(self):
-        voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
+        # voxels, children, features, pcd_xyz, pcd_color = self.svo.get_centres_and_children()
+        voxels_center,pcd_xyz,pcd_color,pcd_childern = self.svo.getVoxelPoints()
+        all_points_xyz, all_points_color,all_points_idx=  self.svo.getPoints()
         # voxels_center = self.svo.get_centres()
         # voxels_center = voxels_center.cuda().float()
         # points_xyz,points_colors = self.svo.getPoints()
@@ -310,8 +317,8 @@ class Mapping:
         # a = self.svo
         # a = deepcopy(self.svo)
         # print("\033[0;33;40m",'=====mapping print=======', "\033[0m")
-        # self.flag = self.flag - 1
-        # np.savetxt(f'voxels_{self.flag}.txt', (voxels* self.voxel_size).cpu().numpy())
+
+        # np.savetxt(f'voxels_{self.flag}.txt', voxels.cpu().numpy())
         # np.savetxt(f'pcd_{self.flag}_xyz0.txt', pcd_xyz[:,0,:].cpu().numpy())
         # np.savetxt(f'pcd_{self.flag}_xyz1.txt', pcd_xyz[:,1,:].cpu().numpy())
         # np.savetxt(f'pcd_{self.flag}_xyz2.txt', pcd_xyz[:,2,:].cpu().numpy())
@@ -319,24 +326,38 @@ class Mapping:
         # np.savetxt(f'pcd_{self.flag}_xyz4.txt', pcd_xyz[:,4,:].cpu().numpy())
         # np.savetxt(f'pcd_{self.flag}_xyz5.txt', pcd_xyz[:,5,:].cpu().numpy())
         # np.savetxt(f'pcd_{self.flag}_xyz6.txt', pcd_xyz[:,6,:].cpu().numpy())
-        # np.savetxt(f'pcd_{self.flag}_xyz7.txt', pcd_xyz[:,7,:].cpu().numpy())
+        # np.savetxt(f'pcd_{self.flag}_xyz7.txt', pcd_childern.cpu().numpy())
+        # self.flag = self.flag +1
         # np.savetxt(f'pcd_color0.txt', pcd_color[:,0,:].cpu().numpy())
         # np.savetxt(f'pcd_color1.txt', pcd_color[:,1,:].cpu().numpy())
         # print("\033[0;33;40m",'---------------', "\033[0m")
         
-        print("\033[0;33;40m",'voxels',voxels.shape, "\033[0m")
+        print("\033[0;33;40m",'voxels',voxels_center.shape, "\033[0m")
         # print("\033[0;33;40m",'children',children.shape, "\033[0m")
         # print("\033[0;33;40m",'features',features.shape, "\033[0m")
         # print("\033[0;33;40m",'pointclous',pcd_xyz.shape, "\033[0m")
         # print("\033[0;33;40m",'pcd_color',pcd_color.shape, "\033[0m")
         # pcd_xyz = pcd_xyz[:,:, :3]  * self.voxel_size
-        pcd_xyz = (pcd_xyz[:,:, :3] + pcd_xyz[:,:, -1:] / 2) * self.voxel_size
+        # pcd_xyz = (pcd_xyz[:,:, :3] + (pcd_xyz[:,:, -1:] / 2* self.voxel_size)) 
+        # pcd_xyz = pcd_xyz[:,:, :3] 
+        
         # 将节点坐标从体素顶点移到体素中心
         
-        centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
-        children = torch.cat([children, voxels[:, -1:]], -1)
-        centres = centres.cuda().float()
-        children = children.cuda().int()
+        # centres = (voxels[:, :3] + voxels[:, -1:] / 2) * self.voxel_size
+        # children = torch.cat([children, voxels[:, -1:]], -1)
+        # centres = centres.cuda().float()
+        # children = children.cuda().int()
+        pcd_xyz = pcd_xyz.cuda().float()
+        voxels_center = voxels_center.cuda().float()
+        pcd_color = pcd_color.cuda().int()
+        pcd_childern = pcd_childern.cuda().int()
+        all_points_xyz = all_points_xyz.cuda().float()
+        all_points_color = all_points_color.cuda().int()
+        all_points_idx = all_points_idx.cuda().int()
+        
+        
+        
+        
         
         # aa = (pcd_xyz[:,:, -1:] / 2) * self.voxel_size
         # bb = (voxels[:, :3] + voxels[:, -1:] / 2)
@@ -380,13 +401,21 @@ class Mapping:
         # print("\033[0;33;40m",'----mapping print over------', "\033[0m")
         
         map_states = {}
-        map_states["voxel_vertex_idx"] = features.cuda()
-        map_states["voxel_center_xyz"] = centres
-        map_states["voxel_structure"] = children
-        map_states["voxel_vertex_emb"] = self.embeddings
+        # map_states["voxel_vertex_idx"] = features.cuda()
+        # map_states["voxel_center_xyz"] = centres
+        # map_states["voxel_structure"] = children
+        map_states["voxel_points_emb"] = self.embeddings
         map_states["pointclouds_xyz"] = pcd_xyz
         map_states["pointclouds_color"] = pcd_color
-        # map_states["hash_voxel_xyz"] = voxels_center
+        map_states["hash_voxel_xyz"] = voxels_center
+        map_states["voxel_points_idx"] = pcd_childern
+        map_states["all_points_xyz"] = all_points_xyz
+        map_states["all_points_color"] = all_points_color
+        map_states["all_points_idx"] = all_points_idx
+        
+        
+        
+        
 
         
         

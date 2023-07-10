@@ -160,17 +160,19 @@ class Tracking:
 
     @torch.no_grad()
     def render_debug_images(self, share_data, current_frame):
+        print("\033[0;33;40m",'进入打印程序', "\033[0m")
         rgb = current_frame.rgb
         depth = current_frame.depth
         rotation = current_frame.get_rotation()
         ind = current_frame.stamp
         w, h = self.render_res
         final_outputs = dict()
+        # print("\033[0;33;40m",'map_states["voxel_center_xyz"]11',map_states["voxel_center_xyz"].shape, "\033[0m")
 
         decoder = share_data.decoder.cuda()
         points_encoder = share_data.points_encoder.cuda()
         map_states = share_data.states
-        print("\033[0;33;40m",'map_states["voxel_center_xyz"]33',map_states["voxel_center_xyz"].shape, "\033[0m")
+        # print("\033[0;33;40m",'map_states["voxel_center_xyz"]33',map_states["voxel_center_xyz"].shape, "\033[0m")
         
         for k, v in map_states.items():
             map_states[k] = v.cuda()
@@ -183,7 +185,7 @@ class Tracking:
 
         rays_o = rays_o.reshape(1, -1, 3).contiguous()
         rays_d = rays_d.reshape(1, -1, 3)
-        print("\033[0;33;40m",'map_states["voxel_center_xyz"]55',map_states["voxel_center_xyz"].shape, "\033[0m")
+        # print("\033[0;33;40m",'map_states["voxel_center_xyz"]55',map_states["voxel_center_xyz"].shape, "\033[0m")
         
         final_outputs = render_rays(
             rays_o,
@@ -196,7 +198,7 @@ class Tracking:
             self.sdf_truncation,
             self.max_voxel_hit,
             self.max_distance,
-            chunk_size=20000,
+            chunk_size=10000,
             return_raw=True
         )
 

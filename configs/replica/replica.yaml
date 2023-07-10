@@ -11,7 +11,7 @@ criteria:
   sdf_truncation: 0.1
 
 resnet_specs:
-  feature_n: 8
+  feature_n: 16
 
 
 decoder_specs:
@@ -35,7 +35,7 @@ tracker_specs:
 
 mapper_specs:
   N_rays_each: 1024
-  num_embeddings: 20000
+  num_embeddings: 200000
   use_local_coord: False
   voxel_size: 0.2
   step_size: 0.1

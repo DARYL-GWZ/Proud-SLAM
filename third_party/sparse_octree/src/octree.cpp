@@ -433,7 +433,7 @@ void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
 
     // CloudPtr pcd_downsample_{new PointCloudType()}; 
     CloudPtr PCD_{new PointCloudType()};
-    for (int i = 0; i < points.size(0); ++i){
+    for (int i = 0; i < points.size(0); i++){
         PointType point;
         point.x = points[i][0];
         point.y = points[i][1];
@@ -441,13 +441,73 @@ void Octree::insert_hash(torch::Tensor pts, torch::Tensor color)
         point.r = colors[i][0];
         point.g = colors[i][1];
         point.b = colors[i][2];
+        // point.a = 0;
         PCD_->points.push_back(point);
-        // std::cout << "point " << point << std::endl;
+        // std::cout << "point.a " << point.a << std::endl;
+    //     std::cout << "point.g " << point.g << std::endl;
+    //     std::cout << "point.x " << point.x << std::endl;
     }
+    
+
     // voxel_scan_.setInputCloud(PCD_);
     // voxel_scan_.filter(*pcd_downsample_);
     ivox_->AddPoints(PCD_->points);
 }
+
+void Octree::insert_hash_mirror(torch::Tensor pts, torch::Tensor color, torch::Tensor index)
+{
+    // std::cout << "hash insert !!!!"   << std::endl;
+
+    // temporal solution
+    all_pts.push_back(pts);
+    all_colors.push_back(color);
+
+    if (root_ == nullptr)
+    {
+        std::cout << "Octree not initialized!" << std::endl;
+    }
+    // std::cout << "MAX_POINTS_PER_LEAF1: " << MAX_POINTS_PER_LEAF<< std::endl;
+
+    auto points = pts.accessor<float, 2>();
+    auto colors = color.accessor<int, 2>();
+    auto indexs = index.accessor<int, 1>();
+
+
+
+    if (points.size(1) != 3)
+    {
+        std::cout << "Point dimensions mismatch: inputs are " << points.size(1) << " expect 3" << std::endl;
+        return;
+    }
+    if (colors.size(1) != 3)
+    {
+        std::cout << "Colors dimensions mismatch: inputs are " << colors.size(1) << " expect 3" << std::endl;
+        return;
+    }
+
+    // CloudPtr pcd_downsample_{new PointCloudType()}; 
+    CloudPtr PCD_{new PointCloudType()};
+    for (int i = points.size(0)-1; i >= 0; i--){
+        PointType point;
+        point.x = points[i][0];
+        point.y = points[i][1];
+        point.z = points[i][2];
+        point.r = colors[i][0];
+        point.g = colors[i][1];
+        point.b = colors[i][2];
+        point.label =indexs[i];
+        PCD_->points.push_back(point);
+        // std::cout << "point.a " << point.a << std::endl;
+        // std::cout << "point.g " << point.g << std::endl;
+        // std::cout << "point.x " << point.x << std::endl;
+    }
+    
+
+    // voxel_scan_.setInputCloud(PCD_);
+    // voxel_scan_.filter(*pcd_downsample_);
+    ivox_->AddPoints_mirror(PCD_->points);
+}
+
 
 torch::Tensor Octree::get_centres()
 {
@@ -455,9 +515,15 @@ torch::Tensor Octree::get_centres()
     return all_voxels;
 }
 
-std::tuple<torch::Tensor, torch::Tensor> Octree::getPoints()
+std::tuple<torch::Tensor,torch::Tensor, torch::Tensor> Octree::getPoints()
 {
     auto all_points_colors = ivox_->get_points();
+    return all_points_colors;
+}
+
+std::tuple<torch::Tensor,torch::Tensor,torch::Tensor, torch::Tensor> Octree::getVoxelPoints()
+{
+    auto all_points_colors = ivox_->get_voxel_points();
     return all_points_colors;
 }
 

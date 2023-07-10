@@ -7,7 +7,7 @@
 #include "ivox3d.h"
 // #include "ivox3d_node.hpp"
 // #include <pcl/filters/voxel_grid.h>
-using PointType = pcl::PointXYZRGB;
+using PointType = pcl::PointXYZRGBL;
 using PointCloudType = pcl::PointCloud<PointType>;
 using CloudPtr = PointCloudType::Ptr;
 using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
@@ -120,7 +120,7 @@ public:
     // using IVoxType = IVox<3, IVoxNodeType::DEFAULT, PointType>;
 // #endif
     // using namespace faster_lio
-    using IVoxType = faster_lio::IVox<3, faster_lio::IVoxNodeType::DEFAULT, pcl::PointXYZRGB>;
+    using IVoxType = faster_lio::IVox<3, faster_lio::IVoxNodeType::DEFAULT, PointType>;
     // using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
     Octree();
     // temporal solution
@@ -131,6 +131,8 @@ public:
     // allocate voxels
     void insert(torch::Tensor vox,torch::Tensor color,torch::Tensor pcd);
     void insert_hash(torch::Tensor points,torch::Tensor color);
+    void insert_hash_mirror(torch::Tensor points,torch::Tensor color,torch::Tensor index);
+    
     double try_insert(torch::Tensor pts);
 
     // find a particular octant
@@ -147,7 +149,9 @@ public:
     torch::Tensor get_voxels();
     std::vector<float> get_voxel_recursive(Octant *n);
     // get all points
-    std::tuple<torch::Tensor, torch::Tensor> getPoints();
+    std::tuple<torch::Tensor,torch::Tensor, torch::Tensor> getPoints();
+    // get all points in voxel
+    std::tuple<torch::Tensor,torch::Tensor,torch::Tensor, torch::Tensor> getVoxelPoints();
     // get close points
     std::tuple<torch::Tensor, torch::Tensor> getClosePoints(torch::Tensor pts);
     // get leaf voxels
